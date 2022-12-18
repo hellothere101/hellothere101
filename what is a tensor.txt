@@ -1,0 +1,7 @@
+Tensor are the numeric representation of input or data we use.
+without tensor we will not able to represent the data and make patterns from it.
+To get a better understanding let us undestand what are vectors .
+It is a quantity that has magnitude and direction. It can also represent area.
+Now we will calculate the component of the vector on the x,y,z axis.
+Tensor give  a perspective which will be the same for a observer and will not
+change at all. hence called the facts of the universe. 
