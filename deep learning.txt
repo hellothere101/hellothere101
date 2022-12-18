@@ -1,0 +1,13 @@
+we need to know what deep learning is first to know what deep learning is.
+Machine learning is turning data numbers and finding patterns in the those numbers.
+deep learning can be simply put as the subset of machine learning.
+basically deep learning teaches computer to do what naturally comes to human.
+
+traditional programming           vs              machine learning
+
+here we have the input                         compare to traditional programming
+and we follow the basic                        we try to give out inputs and outputs   
+rules to get our desired                       to the computer first which will
+output.                                        provide us with the set of rules needed
+                                               to reach our output..
+
