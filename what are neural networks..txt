@@ -1,0 +1,34 @@
+Let us explain neural network in a simpler way .
+Let us consider  inputs or data and based on those input we 
+will convert them into number(This conversion is called  numerical encoding).
+now we will put the inputs to the neural network and based on these number 
+neural network will try to find patterns in them in them.Finally the neural
+network will find give us the output representation of the input data.
+these output respresentation are the numeric representation of data and 
+the relationship that exists between them.we will convert the outputs
+representation to human understandable language. 
+
+example of his usage are :
+suppose we need to see the text send by the tweet and decide whether the tweet is 
+acceptable or not. we will give the input to neural network and it will 
+hopefully able to tell if the text send is correct or not.  
+
+anatomy of the neural networks. 
+
+input layer - where the data goes
+
+hidden layer - where the pattern are learned
+
+output layer - output learn the representation or prediction probabilities.
+
+Types of learning
+
+supervised learning - here the label and the data is given.
+
+semi-supervised learning - has some or same data as supervised but only 
+has some label 
+
+unsupervised learning - only data but has no data.
+
+Transfer learning - patterns learned in one deep learning model and use it in other 
+deep learning model  

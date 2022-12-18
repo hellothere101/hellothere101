@@ -1,0 +1,17 @@
+Tensorflow will help us build the deep learning model architecture.
+It is a 
+. end-to-end platform for machine learning
+. write fast deep learning code in python.
+. Able to use pre-existing deep learning models
+. Whole stack: pre-process data,model data,deploy model in your application.
+. Originally made by google and now is open source.
+
+Why use tensorflow?
+The answer is simple. works that would have taken months with large team to solve
+few years ago just need a few lines of code nowadays with the help of the tensorflow.
+ 
+GPU/TPU:-
+graphical processing unit and Tensor processing unit.
+we use them because they are good with numbers and can do mathmatical calculation 
+really fast. 
+
