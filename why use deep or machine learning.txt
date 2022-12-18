@@ -1,0 +1,42 @@
+The reason why to use machine learning is to get the rules 
+required to get our desired output. For complex problems finding
+the rules needed to get the output becomes a very tough job. for
+example for a self driving car we will needed to make a real
+complex set of rules for the car to self drive and not crash.
+
+However when a problem is rather simple we should use a rule-based 
+system rather then using machine learning.
+
+when to use machine learning.
+
+. problems with a really lost list of problem.
+. when the enviroment is continously changing.
+. getting insights in large collection of data.
+
+when not to use machine learning
+. when you need explainability - the pattern made by machine learning
+is not understood by humans.
+. when the traditional rule is a better option.
+. when the error are not acceptable.
+. when you do not have much data.
+(but we can still use ML without a lot of data)
+
+machine learning works on structured data like excel sheets but we know that
+deep learning works better on unstructured data. Like videos, audio and etc.
+
+machine learning algorithm
+
+.random forest
+.naive bayes
+.nearest neighbour
+.support vector machine
+....many more.
+
+deep learning
+
+.neural networks 
+.fully connected neural networks.
+.convolution neural network
+.recurrent neural network.
+
+

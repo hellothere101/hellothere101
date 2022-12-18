@@ -1,0 +1,11 @@
+where is deep learning is used 
+
+.recommendation
+
+.speech recognition
+
+.translation
+
+.computer vision
+
+.Natural language processing
