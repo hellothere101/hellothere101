@@ -1,0 +1,415 @@
+# In this book we will cover one of the most fundamental concept of the tensors using tesorflow.
+
+we are going to cover
+* introduction to tensors.
+* getting information from the tensors
+* Manipulating tensor
+* tensor in numpy
+* using @tf.functions(make the process faster)
+* using GPU with the tenserflow(or TPU)
+* some excercise
+
+
+#@title Default title text
+# introduction to tensor 
+
+# Import Tensorflow
+import tensorflow as tf
+print(tf.__version__)
+
+# create tensors with tf.tensor()
+scalar=tf.constant(7);
+scalar
+
+#check the no of dimensions for the tensor
+scalar.ndim
+
+#create a vector
+vector=tf.constant([10,10])
+vector
+
+#check the dimension of ndim
+vector.ndim
+
+#let us create a matrix (matrix having more then one dimensions)
+matrix= tf.constant([[10,7],[7,10]])
+matrix
+
+#checking the dimension of the matrix
+matrix.ndim
+
+#let us create another matrix
+another_matrix=tf.constant([[10.,7.,8.],[5.,4.,9.],[8.,3.,0.]],dtype=tf.float16)
+another_matrix
+
+another_matrix.ndim
+
+# let us create a 3d tensor 
+tensor=tf.constant([[[1,2,3],[4,5,6]],[[7,8,9],[10,11,12]],[[13,14,15],[16,17,18]]])
+tensor
+
+tensor.ndim
+
+what are the things we have learned
+* scalar- it is a single number
+* vector- number with number with direction
+* matrix- a 2 dimentional structure
+* tensor- n-dimension structure
+
+### creating tensor with the 'tf.variable'
+
+#let us create a tensor variable
+changable_vector=tf.Variable([10,7])
+unchangable_vector=tf.constant([10,7])
+unchangable_vector,changable_vector
+
+#let us change our variable in our changable vector
+#changable_vector[0]=7;
+
+#let us change the vector using assign command
+changable_vector[0].assign(7);
+changable_vector
+
+#let us change our unchangable vector
+#unchangable_vector[0].assign(7)
+#unchangable_vector
+
+### creating a random tensor
+random tensor are of arbitary size with random numbers.
+
+#create two random tensor(both are the same)
+random_1=tf.random.Generator.from_seed(42) # set_seed for the producibility
+random_1=random_1.normal(shape=(3,2))
+random_2=tf.random.Generator.from_seed(42)
+random_2=random_2.normal(shape=(3,2))
+random_1,random_2,random_1==random_2
+
+###Shuffle the order of tensor elements
+
+shuffle a tensor(This is valuable when we do not want the inherent order do not effect learning)
+
+not_shuffled=tf.constant([[10,7],[3,4],[2,5]])
+not_shuffled
+tf.random.shuffle(not_shuffled)
+
+
+not_shuffled
+
+not_shuffled
+
+It seems to keep our shuffle in same order we need to use both operational level random seeds and the global once as well
+
+p1=tf.constant([[10,3],[3,2],[11,2],[12,2]])
+
+tf.random.set_seed(42)
+tf.random.shuffle(p1,seed=42)
+p1
+
+###create a tensor using other ways
+
+#create tensor of all zeroes
+tf.ones([10,7])
+
+#create a tensor of all zeroes
+tf.zeros(shape=(3,2))
+
+###convert numpy arrays to tensors
+the main difference between numpy array and tensor is that tensor can be run on GPU(which is much faster).
+
+import numpy as np
+numpy_A=np.arange(1,25,dtype=np.int32)
+numpy_A
+
+A=tf.constant(numpy_A,shape=(2,3,4))
+A
+
+B=tf.constant(numpy_A,shape=(3,8))
+B
+
+###getting information from tensors
+
+when dealing with tensor be aware of the following attributes:
+* shape
+* rank
+* Axis or dimension
+* Size
+
+#create a rank 4 tensor
+rank_4_tensor=tf.zeros(shape=(2,3,4,5))
+rank_4_tensor
+
+rank_4_tensor[0]
+
+rank_4_tensor.shape,rank_4_tensor.ndim,tf.size(rank_4_tensor)
+
+#getting the print of all attribute of our tensor
+print("Datatype of every element: ",rank_4_tensor.dtype)
+print("the dimension of the tensor: ",rank_4_tensor.ndim)
+print("shape of tensor: ",rank_4_tensor.shape)
+print("element about the 0 axis: ",rank_4_tensor.shape[0])
+print("Elements along the last axis: ",rank_4_tensor.shape[-1])
+print("size of the tensor: ",tf.size(rank_4_tensor))
+print("size of the tensor: ",tf.size(rank_4_tensor).numpy())
+
+###Indexing Tensor
+tensor are like numpy list.
+
+some_list=[1,2,3,4]
+some_list[:2]
+
+rank_4_tensor[:2,:2,:2,:2]
+
+#get the first element from the each dimension from each index except for the last one
+rank_4_tensor[:1,:1,:1,:]
+
+#create rank 2 tensor(2 dimension)
+rank_2_tensor=tf.constant([[10,7],[3,4]])
+rank_2_tensor
+
+#get the last elements from each of the rows of our rank 2 tensor
+rank_2_tensor[:,-1]
+
+#add a new axis to the rank_2_tensor
+rank_3_tensor=rank_2_tensor[...,tf.newaxis]
+rank_3_tensor
+
+#alternate to the newaxis
+tf.expand_dims(rank_2_tensor,axis=-1) #"-1" is written to expands on the final axis
+
+### Manipulating tensor(tensor operation)
+
+**basic operation**
+
+`+`,`-`,`/`,`*`
+
+#adding values in a tensor
+tensor=tf.constant([[10,7],[3,4]])
+
+tensor+10
+#original tensor remain unchanged for that we need to do tensor=tensor+10
+
+#multiplication also works
+tensor*10
+
+#substraction as well
+tensor-10
+
+#we can also use the build in functions
+tf.multiply(tensor,10)
+
+tf.add(tensor,10)
+
+tf.subtract(tensor,10)
+
+tf.divide(tensor,2)
+
+**Matrix multiplication**
+
+In machine learning matix multiplication is the most common technique that is used.
+
+There are two rules that our matrix to follow and we must follow them to do matrix multiplication
+
+1. The Inner dimension must match
+2. The resulting matrix have the shape of outer matrix 
+
+tf.matmul(tensor,tensor)
+
+#matrix multiplication with @ python function
+tensor @ tensor
+
+#create a tensor of (3,2)
+X=tf.constant([[1,2],
+               [3,4],
+               [5,6]])
+#create a tensor of shape(3,2)
+Y=tf.constant([[7,8],
+             [9,10],
+             [11,12]])
+Y=tf.reshape(Y,shape=(2,3))
+tf.matmul(X,Y)
+
+#try matix multiplication using transpose instead of reshape
+Y=tf.reshape(Y,shape=(3,2))
+tf.matmul(tf.transpose(X),Y)
+
+**Dot product**
+
+matrix multiplication is also referred to as the dot product
+we can perform matrix multiplication using two process:
+* `tf.matmul()`
+* `tf.tensordot()`
+
+# we will usedot product for matrix multiplication(we need to transpose of the matrix)
+tf.tensordot(tf.transpose(X),Y,axes=1)
+
+# we will try matrix multiplication by transpose Y
+tf.tensordot(X,tf.transpose(Y),axes=1)
+
+# we will try matrix multiplication by reshape Y
+tf.tensordot(X,tf.reshape(Y,shape=(2,3)),axes=1)
+
+#help us investigate the reason for different answers above
+print("The value Y when we use reshape ")
+print(Y,"\n")
+
+print("The value Y when we use reshape ")
+print(tf.reshape(Y,shape=(2,3)),"\n")
+
+print("The value Y when we use transpose ")
+print(tf.transpose(Y),"\n")
+
+
+###Generally when we need to satisfy the matrix multiplication we usally try to transpose rather then using reshape
+
+###changing the data type of tensor
+
+#create a new tensor using the default tensor type (float32)
+B=tf.constant([10.7,6.8])
+B.dtype
+
+C=tf.constant([10,7])
+C.dtype
+
+B=tf.cast(B,dtype=tf.float16)
+B.dtype
+
+#convert from int32 to float32
+B=tf.cast(B,dtype=tf.float32)
+B.dtype
+
+#convert from float32 to int32
+C=tf.cast(C,dtype=tf.int32)
+C.dtype
+
+###Aggregating tensor
+
+Aggregating tensor is condensing the value of the multiple value to smaller values.
+
+#get the absolute value
+D=tf.constant([-7,-10])
+D
+
+tf.abs(B)
+
+Let's us go through the following forms of agreggating tensors
+* get the maximum
+* get the minimum
+* find the mean value
+* sum of the tensor
+
+E=tf.constant(np.random.randint(0,100,size=50))
+E
+
+tf.size(E),E.ndim,E.shape
+
+#find the minimum
+tf.reduce_min(E)
+
+#find the maximum
+tf.reduce_max(E)
+
+#find the mean
+tf.reduce_mean(E)
+
+#find the sum
+tf.reduce_sum(E)
+
+use stats variance and standard deviation
+
+#finding the variance using the tensorflow probability
+import tensorflow_probability as tfp
+tfp.stats.variance(E)
+
+#finding the standard deviation
+tf.math.reduce_std(tf.cast(E,dtype=tf.float32))
+
+#better ways to find the variance
+tf.math.reduce_variance(tf.cast(E,dtype=tf.float32)) 
+
+###finding the maximum and minimum position
+
+#create a new tensor for finding the positional maximum and minimum
+tf.random.set_seed(42)
+F=tf.random.uniform(shape=[50])
+F
+
+#find the positional maximum
+tf.argmax(F)
+
+# the value of the position maximum
+F[tf.argmax(F)]
+
+#check it with tf.reduce_max
+tf.reduce_max(F)
+
+# check the equality between them
+F[tf.argmax(F)] == tf.reduce_max(F)
+
+#find the positional maximum
+tf.argmin(F)
+
+# the value of the position minimum
+F[tf.argmin(F)]
+
+# check the equality between them
+F[tf.argmin(F)] == tf.reduce_min(F)
+
+###squeezing our tensors(remove all single dimensions)
+
+tf.random.set_seed(42)
+G=tf.constant(tf.random.uniform(shape=[50]),shape=(1,1,1,1,50))
+G
+
+G.shape
+
+G_squeezed=tf.squeeze(G)
+G_squeezed.shape
+
+###one-hot-encoding tensors
+
+#create a list of indices
+create_list=[0,1,2,3] #could be red,green,blue,purple
+
+#one-hot encoding our list
+tf.one_hot(create_list,depth=4)
+
+#using the custom value for the one hot encoding
+tf.one_hot(create_list,depth=4,on_value="yes",off_value="no")
+
+###squaring,log,square root
+
+H=tf.range(1,10)
+H
+
+#square it
+tf.square(H)
+
+#to find the square root
+tf.sqrt(tf.cast(H,dtype=tf.float32))
+
+#find the log
+tf.math.log(tf.cast(H,dtype=tf.float32))
+
+###tensor and numpy
+
+tensorflow beautifully interact with numpy array
+
+J=tf.constant(np.array([10.,7.,8.]))
+J
+
+#to convert back to numpy
+np.array(J),type(np.array(J))
+
+#we can also convert it back into a numpy array 
+J.numpy(),type(J.numpy())
+
+#default types of each are slightly different
+numpy_J=tf.constant(np.array([3.,7,10.]))
+J=tf.constant([3.,7,10.])
+J.dtype,numpy_J.dtype
+
+###finding access to GPU
+
+tf.config.list_physical_devices("GPU")
+
+!nvidia-smi
