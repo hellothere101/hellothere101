@@ -1,0 +1,35 @@
+function absolute(array){
+  let low,high;
+  low=0;
+  let n=array.length;
+  high=array.length;
+  while(low<high){
+    while(low<high && array[low]===array[low+1]){
+      n--;
+      low++;
+    }
+    while(low<high && array[high]===array[high-1]){
+      n--;
+      high--;
+    }
+    if(low===high){
+      return n;
+    }
+    sum=array[low]+array[high];
+    if(sum===0){
+      low++;
+      high--;
+      n--;
+    }
+    else if(sum<0){
+      low++;
+    }
+    else{
+      high--;
+    }
+  }
+  return n;
+}
+a=[1, -1, 0, 1, 1, 1];
+let m={};
+console.log(absolute(a));

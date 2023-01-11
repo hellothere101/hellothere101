@@ -1,0 +1,49 @@
+class node{
+  constructor(value){
+    this.value=value;
+    this.next=null;
+  }
+}
+
+class stack{
+  constructor(){
+    this.top=null;
+    this.bottom=null;
+    this.length=0;
+  }
+  peek(){
+    return this.top;
+  }
+  push(value){
+    const newnode= new node(value)
+    if(this.length===0){
+      this.top=newnode;
+      this.bottom=newnode;
+    }else{
+      let pointer=this.top;
+      this.top=newnode;
+      this.top.next=pointer;
+    }
+    this.length++;
+    return this;
+  }
+  pop(){
+    if(!this.top){
+      return 'nope';
+    }
+    else{
+      const pointer=this.top;
+      this.top=this.top.next;
+      this.length--;
+      return this;
+    }
+  }
+}
+
+let mystack= new stack();
+console.log(mystack.push('google'));
+console.log(mystack.push(24));
+console.log(mystack.peek())
+console.log(mystack.pop());
+console.log(mystack.pop());
+console.log(mystack.pop());

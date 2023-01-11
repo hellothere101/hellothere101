@@ -1,0 +1,15 @@
+function add(){
+  let cache={};
+  return function(n){
+    if(n in cache){
+    return cache[n];
+  }else{
+    console.log('long time');
+    cache[n]=n+80;
+    return 'done'
+  }
+  }
+}
+let l=add();
+console.log(l(5));
+console.log(l(7));

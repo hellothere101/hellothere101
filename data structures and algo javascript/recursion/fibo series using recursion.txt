@@ -1,0 +1,8 @@
+function faborec(index){
+  if(index<2){
+    return index;
+  }
+  return faborec(index-1)+faborec(index-2);
+}
+let s=5;
+console.log(faborec(7));

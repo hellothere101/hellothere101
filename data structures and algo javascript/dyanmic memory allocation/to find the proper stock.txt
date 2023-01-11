@@ -1,0 +1,9 @@
+function(nums){
+let maxprofit=0,min=nums[0];
+for(let i=0;i<nums.length;i++){
+     min=Math.min(min,nums[i]);
+     profit=nums[i]-min;
+     maxprofit=Math.max(maxprofit,profit);
+}
+return maxprofit;
+}

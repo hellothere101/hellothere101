@@ -1,0 +1,14 @@
+function add(array,sum){
+  let sum1=0;
+  let map={};
+  for(let i=0;i<array.length;i++){
+    sum1=sum1+array[i];
+    if(map[sum1-sum]!==undefined){
+      return true;
+    }
+    map[sum1]=i;
+  }
+  return false;
+}
+array=[2,2,6,1,5,3,7];
+console.log(add(array,12));

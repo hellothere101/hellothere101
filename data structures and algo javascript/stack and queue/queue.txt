@@ -1,0 +1,44 @@
+class node{
+  constructor(value){
+    this.value=value;
+    this.next=null;
+  }
+}
+class queue{
+  constructor(){
+    this.first=null;
+    this.last=null;
+    this.length=0;
+  }
+  push(value){
+    let newnode=new node(value);
+    if(this.length===0){
+      this.first=newnode;
+      this.last=newnode;
+    }
+    else{
+      this.last.next=newnode;
+      this.last=newnode;
+    }
+    this.length++;
+    return this;
+  }
+  pop(){
+    if(this.length===0){
+      return 'nope';
+    }else if(this.length===1){
+      this.last=null;
+    }
+    let pointer=this.first;
+    this.first=this.first.next;
+    this.length--;
+    return this;
+  }
+}
+let myqueue= new queue();
+console.log(myqueue.push('google'));
+console.log(myqueue.push(24));
+// console.log(mystack.peek())
+console.log(myqueue.pop());
+console.log(myqueue.pop());
+console.log(myqueue.pop());

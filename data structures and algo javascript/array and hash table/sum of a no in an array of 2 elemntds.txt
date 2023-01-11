@@ -1,0 +1,18 @@
+function check(array,low,high,key){
+  while(low<high){
+    if((array[low]+array[high])===key){
+      return 1;
+    }
+    else if((array[low]+array[high])>key){
+      high--;
+      check(array,low,high,key);
+    }
+    else{
+      low++;
+      check(array,low,high,key);
+    }
+  }
+  return 0;
+}
+let array=[2,7,11,15];
+console.log(check(array,0,array.length-1,113));

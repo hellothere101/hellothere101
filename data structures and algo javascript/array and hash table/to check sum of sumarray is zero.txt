@@ -1,0 +1,13 @@
+function zerocheck(array){
+  let maps={},sum=0;
+  for(let i=0;i<array.length;i++){
+    sum=sum+array[i];
+    if(maps[sum]!==undefined){
+      return true;
+    }
+    maps[sum]=i;
+  }
+  return false;
+}
+ let  A = [4, 2, -3, -1, 0, 4];
+console.log(zerocheck(A));

@@ -1,0 +1,22 @@
+function first(array){
+  let k=0,m=0;
+  for(let i=0;i<array.length-1;i++){
+    for(let j=i+1;j<array.length;j++){
+      if(array[i]===array[j]){
+        k=j;
+        if(m===0){
+          m=k;
+        }
+        else if(m>k){
+          m=k;
+        }
+      }
+    }
+  }
+  if(m!==0){
+    return array[m];
+  }
+  return 0;
+}
+array=[2,7,7,2,5,5,1,2,5];
+console.log(first(array))

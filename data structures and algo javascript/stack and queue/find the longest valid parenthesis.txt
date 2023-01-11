@@ -1,0 +1,21 @@
+var longestValidParentheses = function(s) {
+    let character=[];
+    let index=[];
+    let k=0,max=0;
+    index.push(-1);
+    for(let i=0;i<s.length;i++){
+        if(s[i]==='('){
+           character.push('(');
+            index.push(i);
+        }else{
+            if(character.length>0 && character[character.length-1]==='('){
+                character.pop();
+                index.pop();
+                max=Math.max(max,i-index[index.length-1]);
+            }else{
+                index.push(i);
+            }
+        }
+    }
+    return max;
+};

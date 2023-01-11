@@ -1,0 +1,37 @@
+class CrazyQueue {
+  constructor() {
+    this.first = [];
+    this.last = [];
+  }
+
+  enqueue(value) {
+    this.first.push(value)
+    return this;
+  }
+
+  dequeue() {
+    if(!this.first){
+      return null;
+    }
+    while(this.first.length!==0){
+      this.last.push(this.first.shift());
+    }
+    let e=this.last.shift();
+    return this;
+  }
+  top(first=[]) {
+    return first[0]
+  }
+}
+
+const myQueue = new CrazyQueue();
+// myQueue.peek();
+myQueue.enqueue('Joy');
+myQueue.enqueue('Matt');
+console.log(myQueue.enqueue('Pavel'));
+// myQueue.peek();
+console.log(myQueue.dequeue());
+console.log(myQueue.enqueue('sayan'));
+// console.log(myQueue.dequeue());
+// myQueue.dequeue();
+// myQueue.peek();

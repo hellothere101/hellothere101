@@ -1,0 +1,48 @@
+class hashtable{
+  constructor(size){
+    this.data=Array(size);
+  }
+  
+  _hash(key){
+    let hash=0;
+    for(let i=0;i<key.length;i++){
+      hash=(hash+(key.charCodeAt(i)*i))%this.data.length;
+    }//o(1)
+    return hash;
+  }
+  set(key,value){
+    let address=this._hash(key);
+    if(!this.data[address]){
+      this.data[address]=[];
+    }//0(1)
+    this.data[address].push([key,value]);
+    return this.data;
+  }
+  get(key){
+    let address=this._hash(key);
+    let current=this.data[address];
+    console.log(current);
+    for(let i=0;i<current.length;i++){
+      if(current[i][0]===key){
+        return current[i][1];
+      }//o(1)
+    }
+      return undefined;
+    }
+  keys(){
+   let array=[];
+   for(let i=0;i<this.data.length;i++){
+     if(this.data[i]){
+       array.push(this.data[i][0][1]);
+     }
+   }
+   return array;
+  }
+}
+const myhash=new hashtable(50);
+// console.log(myhash._hash('grapes'));
+console.log(myhash.set('grapes',10000));
+console.log(myhash.set('gall',10012));
+console.log(myhash.set('apple',1321));
+console.log(myhash.get('gall'));
+console.log(myhash.keys())

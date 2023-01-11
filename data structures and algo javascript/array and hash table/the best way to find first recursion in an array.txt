@@ -1,0 +1,15 @@
+function first(array){
+  let map={};
+  for(let i=0;i<array.length;i++){
+    if(map[array[i]]!==undefined){
+      return array[i];
+    }else{
+      map[array[i]]=i;
+    }
+     console.log(map);
+  }
+ 
+  return 0;
+}
+array=[2,1,1,2,5,5,1,2,5];
+console.log(first(array))

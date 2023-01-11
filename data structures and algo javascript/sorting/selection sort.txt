@@ -1,0 +1,15 @@
+function selection(array){
+  let counter=0;
+  for(let i=0;i<array.length-2;i++){
+    for(let j=i+1;j<array.length-1;j++){
+      if(array[j]<array[i]){
+        let arr=array[i];
+        array[i]=array[j];
+        array[j]=arr;
+      }
+    }
+  }
+  return array;
+}
+let array=[23,123,34,12,34,2123,12,13];
+console.log(selection(array));

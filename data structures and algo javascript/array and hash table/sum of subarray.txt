@@ -1,0 +1,17 @@
+function subarraysum(array,sum){
+  let low=0;high=0;
+  let sum1=0;
+  for(low=0;low<array.length;low++){
+    while(high<array.length && sum1<sum){
+      sum1=sum1+array[high];
+      high++;
+    } 
+    if(sum1===sum){
+      return true;
+    }
+    sum1=sum1-array[low];
+  }
+  return false;
+}
+array=[ 2, 6, 0, 9, 7, 3, 1, 4, 1, 10],sum=15;
+console.log(subarraysum(array,sum));

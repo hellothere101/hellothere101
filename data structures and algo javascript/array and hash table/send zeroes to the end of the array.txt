@@ -1,0 +1,16 @@
+function zero(array){
+  let i,count=0;
+  for(i=0;i<array.length;i++){
+    if(array[i]!=0){
+      array[count]=array[i];
+      count++
+    }
+  }
+  while(count<array.length){
+    array[count]=0;
+    count++;
+  }
+  return array;
+}
+array=[0,1,0,3,12];
+console.log(zero(array));

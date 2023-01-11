@@ -1,0 +1,20 @@
+function merge(array1,array2){
+  let a,b,i=0,j=0;
+  a=array1[0];
+  b=array2[0];
+  let arr=[];
+  while(a || b){
+    if(!b || a<b){
+      arr.push(a);
+      i++;
+      a=array1[i];
+    }
+    else{
+      arr.push(b);
+      j++;
+      b=array2[j];
+    }
+  }
+  return arr;
+}
+console.log(merge([23,43,123,324,43534],[12,453,2134,4123]));

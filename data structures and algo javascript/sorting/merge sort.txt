@@ -1,0 +1,43 @@
+function merge(array,low,mid,high){
+  let i,j,k,b=[];
+  i=low;
+  j=mid+1;
+  k=low;
+  while(i<=mid && j<=high){
+    if(array[i]<array[j]){
+      b[k]=array[i];
+      k++;
+      i++;
+    }else{
+      b[k]=array[j];
+      k++;
+      j++;
+    }
+  }
+  while(i<=mid){
+    b[k]=array[i];
+    i++;
+    k++;
+  }
+  while(j<=high){
+    b[k]=array[j];
+    j++;
+    k++;
+  }
+  for(let i=low;i<=high;i++){
+    array[i]=b[i];
+  }
+  return array;
+}
+
+function mergesort(array,low,high){
+  let mid;
+  while(low<high){
+    mid=Math.floor((low+high)/2);
+    mergesort(array,low,mid);
+    mergesort(array,mid+1,high);
+    return merge(array,low,mid,high);
+  }
+}
+let array=[23,12,13,122,33,42,14];
+console.log(mergesort(array,0,array.length-1));

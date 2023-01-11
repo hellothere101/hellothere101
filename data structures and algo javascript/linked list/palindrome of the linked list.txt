@@ -1,0 +1,39 @@
+ */
+function reverse(head){
+    let first=head;
+    let second=head.next;
+    while(second){
+        let temp=second.next;
+        second.next=first;
+        first=second;
+        second=temp;
+    }
+    head.next=null;
+    head=first;
+    return head;
+}
+var isPalindrome = function(head) {
+    let ns=head,n=0;
+    let dp=[],i=0;
+    while(ns!==null){
+        dp.push(ns.val);
+        ns=ns.next;
+        i++;
+    }
+    console.log(dp);
+    head=reverse(head);
+    let ptr=head;
+    i=0;
+    while(ptr!==null){
+        if(ptr.val!== dp[i]){
+            n++;
+        }
+        console.log(n);
+        ptr=ptr.next;
+        i++;
+    }
+    if(n>0){
+        return false;
+    }
+    return true;
+};

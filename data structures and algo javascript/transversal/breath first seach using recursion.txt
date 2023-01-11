@@ -1,0 +1,110 @@
+class node{
+  constructor(value){
+    this.value=value;
+    this.left=null;
+    this.right=null;
+  }
+}
+class bst{
+  constructor(){
+    this.root=null;
+  }
+  insert(value){
+    let newnode=new node(value);
+    if(this.root===null){
+      this.root=newnode;
+    }else{
+      let current=this.root;
+      while(true){
+        if(value<current.value){
+          if(!current.left){
+            current.left=newnode;
+            return this;
+          }
+          current=current.left;
+        }
+        else{
+           if(!current.right){
+            current.right=newnode;
+            return this;
+          }
+          current=current.right;
+      }
+    }
+    return this;
+  }
+  }
+  lookup(value){
+    if(!this.root){
+      return false;
+    }
+      let current=this.root;
+      while(current){
+        if(value<current.value){
+          current =current.left;
+        }else if(value>current.value){
+          current=current.right;
+        }else if(value===current.value){
+          return true;
+        }
+      }
+    return false;
+  }
+  remove(value,root=this.root){
+    if(!root){
+      return false;
+    }
+    let current=root;
+    let parent=null;
+      if(value<root.value){
+        root.left=this.remove(value,root.left)
+        return root;
+      }else if(value>root.value){
+        root.right=this.remove(value,root.right)
+        return root;
+      }else if(value===current.value){
+        if(root.right===null && root.left===null){
+          return null;
+        }else if(root.left===null){
+          return root.right;
+        }else if(root.right===null){
+          return root.left;
+        }else{
+          let temp=root.right;
+          while(temp.left!==null){
+            temp=temp.left;
+          }
+          root.value=temp.value;
+          root.right=this.remove(temp.value,root.right);
+          return root;
+        }
+    }
+  }
+   rec(queue,list){
+    if(queue.length===0){
+      return list;
+    }
+    let curr=queue.shift();
+    list.push(curr.value);
+    if(curr.left){
+      queue.push(curr.left);
+    }
+    if(curr.right){
+      queue.push(curr.right);
+    }
+    return this.rec(queue,list);
+  }
+}
+  
+let tree=new bst();
+tree.insert(9);
+tree.insert(4);
+tree.insert(6);
+tree.insert(20);
+tree.insert(170);
+tree.insert(15);
+let a=tree.insert(1);
+// console.log(tree.lookup(170))
+// let a=tree.remove(20);
+console.log(JSON.stringify(a));
+console.log(tree.rec([tree.root],[]));

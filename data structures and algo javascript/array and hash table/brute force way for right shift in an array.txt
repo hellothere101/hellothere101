@@ -1,0 +1,17 @@
+
+function rightshift(array,k){
+  while(k>0){
+    let n=array[array.length-1];
+    for(let i=array.length-1;i>=0;i--)
+    {
+      array[i+1]=array[i];
+    }
+    delete array[array.length];
+    array.length--;
+    array[0]=n;
+    k--;
+  }
+  return array;
+}
+array=[1,2,3,4,5,6,7],k=4;
+console.log(rightshift(array,k));

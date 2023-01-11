@@ -1,0 +1,43 @@
+class graph{
+  constructor(){
+  this.numberofnodes=0;
+  this.adjacentlist={};
+}
+addvertex(node){
+  this.adjacentlist[node]=[];
+  this.numberofnodes++;
+}
+addedge(node1,node2){
+  this.adjacentlist[node1].push(node2);
+  this.adjacentlist[node2].push(node1);
+}
+  showConnections() { 
+    const allNodes = Object.keys(this.adjacentlist); 
+    for (let node of allNodes) { 
+      let nodeConnections = this.adjacentlist[node]; 
+      let connections = ""; 
+      let vertex;
+      for (vertex of nodeConnections) {
+        connections += vertex + " ";
+      } 
+      console.log(node + "-->" + connections); 
+    } 
+}
+}
+var mygraph=new graph();
+mygraph.addvertex('0');
+mygraph.addvertex('1');
+mygraph.addvertex('2');
+mygraph.addvertex('3');
+mygraph.addvertex('4');
+mygraph.addvertex('5');
+mygraph.addvertex('6');
+mygraph.addedge('3', '1'); 
+mygraph.addedge('3', '4'); 
+mygraph.addedge('4', '2'); 
+mygraph.addedge('4', '5'); 
+mygraph.addedge('1', '2'); 
+mygraph.addedge('1', '0'); 
+mygraph.addedge('0', '2'); 
+mygraph.addedge('6', '5');
+mygraph.showConnections();

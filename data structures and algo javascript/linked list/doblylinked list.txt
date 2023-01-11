@@ -1,0 +1,81 @@
+class doublylinkedlist{
+  constructor(value){
+    this.head={
+      value:value,
+      next: null,
+      prev:null
+    }
+    this.tail=this.head;
+    this.length=1;
+    return this;
+  }
+  append(value){
+    const node={
+      value:value,
+      next:null,
+      prev:null
+    }
+    node.prev=this.tail;
+    this.tail.next=node;
+    this.tail = node;
+    this.length++;
+    return this;
+  }
+  print(){
+    let ptr=this.head;
+    while(ptr!==null){
+      console.log(ptr.value);
+      ptr=ptr.next;
+    }
+  }
+  prepend(value){
+    const node={
+      value:value,
+      next:null,
+      prev:null
+    }
+    node.prev=null;
+    node.next=this.head;
+    this.head.prev=node;
+    this.head=node;
+    this.length++
+    return this;
+  }
+  insert(value,index){
+    const node={
+      value:value,
+      next:null,
+      prev:null
+    }
+    let ptr=this.head;
+    let q=this.head.next;
+    for(let i=0;i<index-1;i++){
+      ptr=ptr.next;
+      q=q.next;
+    }
+    q.prev=node;
+    node.prev=ptr;
+    node.next=ptr.next;
+    ptr.next=node;
+    this.length++;
+    return this;
+  }
+  remove(index){
+    let ptr=this.head;
+    let q=this.head.next;
+    for(let i=0;i<index-1;i++){
+      ptr=ptr.next;
+      q=q.next;
+    }
+    ptr.next=q.next;
+    this.length--;
+    return this
+  }
+}
+m=new doublylinkedlist(10);
+// console.log(m)
+m.append(3);
+m.prepend(4);
+m.insert(50,2);
+console.log(m.remove(2));
+m.print();

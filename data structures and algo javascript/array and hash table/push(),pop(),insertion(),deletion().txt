@@ -1,0 +1,54 @@
+class myarray{
+  constructor()
+  {
+    this.lenght=0;
+    this.data={};
+  }
+  
+  get(index){
+    return this.data[index];
+  }
+  push1(item){
+    this.data[this.lenght]=item;
+    this.lenght++;
+    return this.lenght;
+  }
+  pop1(){
+    const ind=this.data[this.lenght-1];
+    delete this.data[this.lenght-1];
+    this.lenght--;
+    return ind;
+  }
+  delet(index){
+    const f=this.data[index];
+    this.shift(index);
+  }
+  shift(index){
+    for(let i=index;i<this.lenght-1;i++)
+    {
+      this.data[i]=this.data[i+1];
+    }
+    delete this.data[this.lenght];
+    this.lenght--;
+  }
+  add1(data,index){
+    const l=this.data[this.lenght];
+    this.ss(data,index);
+  }
+  ss(data,index){
+    for(let n=this.lenght-1;n>=index;n--)
+    {
+      this.data[n+1]=this.data[n];
+    }
+    this.data[index]=data;
+    this.lenght++;
+  }
+}
+let newarray= new myarray();
+newarray.push1('hi');
+newarray.push1('there');
+newarray.push1('why');
+newarray.push1('here');
+// newarray.pop();
+newarray.add1('sa',2);
+console.log(newarray);

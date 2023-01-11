@@ -1,0 +1,9 @@
+function recursion(value){
+  if(value===1){
+    return 1;
+  }else{
+    return value*recursion(value-1);
+  }
+}
+let l=4;
+console.log(recursion(l));

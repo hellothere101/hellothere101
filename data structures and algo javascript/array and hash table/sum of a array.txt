@@ -1,0 +1,14 @@
+function subarraysum(array,sum){
+ let maps={},sum1=0;
+ for(let i=0;i<array.length;i++){
+   sum1=sum1+array[i];
+   if(maps[sum1-sum]!==undefined){
+     console.log("the array is",maps[sum1-sum]+1,'and',i)
+     return true;
+   }
+   maps[sum1]=i;
+ }
+ return false;
+}
+array=[ 2, 6, 0, 9, 7, 3, 1, 4, 1, 10],sum=15;
+console.log(subarraysum(array,sum));

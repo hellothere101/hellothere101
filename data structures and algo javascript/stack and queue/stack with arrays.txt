@@ -1,0 +1,24 @@
+class stack{
+  constructor(){
+    this.array=[];
+  }
+  peek(){
+    return this.array[this.array.length-1];
+  }
+  push(value){
+    this.array.push(value);
+    return this;
+  }
+  pop(){
+   this.array.pop();
+   return this;
+  }
+}
+
+let mystack= new stack();
+console.log(mystack.push('google'));
+console.log(mystack.push(24));
+console.log(mystack.peek())
+console.log(mystack.pop());
+console.log(mystack.pop());
+console.log(mystack.pop());

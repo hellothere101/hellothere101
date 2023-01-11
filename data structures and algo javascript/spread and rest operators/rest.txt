@@ -1,0 +1,4 @@
+function sayan(...args){
+  return args.sort((a,b)=>a-b);
+}
+console.log(sayan(23,1232,23,324,23124,234))

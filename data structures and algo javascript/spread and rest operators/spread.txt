@@ -1,0 +1,13 @@
+let n=[1,3,52,312];
+let s=[...n,231];
+console.log(s);
+
+let person={
+  name: 'sayan',
+  class: 'do not have one'
+}
+let ss={
+  ...person,
+  place:'darjeeling'
+}
+console.log(ss);

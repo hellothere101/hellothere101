@@ -1,0 +1,12 @@
+let cache={};
+function add(n){
+  if(n in cache){
+    return 'already done';
+  }else{
+    console.log('long time');
+    cache[n]=n+80;
+    return 'done'
+  }
+}
+console.log(add(5));
+console.log(add(5));

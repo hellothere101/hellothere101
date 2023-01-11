@@ -1,0 +1,27 @@
+function gcd(a,b){
+  if(b==0){
+    return a;
+  }
+  else{
+    return gcd(b,a%b);
+  }
+}
+function leftshift(array,k){
+  let i,j,temp,d;
+  for(i=0;i<gcd(array.length,k);i++){
+    j=i;
+    temp=array[i];
+    while(1){
+      d=(k+j)%(array.length);
+      if(d==i){
+        break;
+      }
+      array[j]=array[d];
+      j=d;
+    }
+    array[j]=temp;
+  }
+  return array;
+}
+array=[1,2,3,4,5,6];
+console.log(leftshift(array,2));

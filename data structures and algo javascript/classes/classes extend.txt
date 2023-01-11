@@ -1,0 +1,20 @@
+class human{
+  constructor(){
+    this.human='max';
+  }
+  printgender(){
+    console.log(this.human);
+  }
+}
+class person extends human{
+  constructor(){
+    super();
+    this.person='mma';
+  }
+  printperson(){
+    console.log(this.person);
+  }
+}
+const Person=new person;
+Person.printperson();
+Person.printgender();

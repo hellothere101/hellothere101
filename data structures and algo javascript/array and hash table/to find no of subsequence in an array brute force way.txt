@@ -1,0 +1,37 @@
+function sort(array){
+  for(let i=0;i<array.length-1;i++){
+    for(let j=i+1;j<array.length;j++){
+      if(array[i]>array[j]){
+        let t=array[j];
+        array[j]=array[i];
+        array[i]=t;
+      }
+    }
+  }
+}
+function allsub(array){
+  let s=0,ans=0;
+  sort(array);
+  console.log(array);
+  let v=[];
+  v.push(array[0]);
+  for(let i=1;i<array.length;i++){
+    if(array[i]!==array[i-1]){
+      v.push(array[i]);
+    }
+  }
+  for(let i=0;i<v.length;i++){
+    if( i>0 && (v[i]===(v[i-1]+1))){
+      s++;
+    }
+    else{
+      s=1;
+    }
+    if(s>ans){
+      ans=s;
+    }
+  }
+  return ans;
+}
+array=[ 1, 9, 3, 10, 4, 20, 2];
+console.log(allsub(array));

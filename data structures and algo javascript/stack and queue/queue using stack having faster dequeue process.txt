@@ -1,0 +1,42 @@
+class CrazyQueue {
+  constructor() {
+    this.first = [];
+    this.last = [];
+  }
+
+  enqueue(value) {
+    while(!this.first){
+      this.last.push(this.first.pop())
+    }
+    this.first.push(value);
+    while(!this.last){
+      this.first.push(this.last.pop())
+    }
+    return this;
+  }
+
+  dequeue() {
+    if(!this.first){
+      return null;
+    }
+    this.first.shift();
+    return this;
+  }
+  peek() {
+    if (this.last.length > 0) {
+      return this.last[0];
+    }
+    return this.first[this.first.length - 1];
+  }
+}
+
+const myQueue = new CrazyQueue();
+myQueue.peek();
+myQueue.enqueue('Joy');
+myQueue.enqueue('Matt');
+console.log(myQueue.enqueue('Pavel'));
+myQueue.peek();
+console.log(myQueue.dequeue());
+myQueue.dequeue();
+myQueue.dequeue();
+myQueue.peek();
