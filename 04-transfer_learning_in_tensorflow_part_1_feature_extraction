@@ -1,0 +1,375 @@
+Loading...
+04-transfer_learning_in_tensorflow_part_1_feature_extraction .ipynb
+04-transfer_learning_in_tensorflow_part_1_feature_extraction .ipynb_
+transfer leraning with tensorflow part 1 feature extraction
+Transfer learning is leveraging a working model's existing arcitecture and leraned pattern for our own benefit
+
+the main two benefits:
+
+can leaverage an existing archictecture proven to work on similar to our own problems
+can leverage a working neural network architecture which has already learned patterns on our similar data, then we can adapt those own pattern for our own.
+download and become one with the data
+[ ]
+# get 10% percent of 10 food classes data
+import zipfile
+
+#downlaod the data
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_10_percent.zip
+
+# unzip the downloaded file
+zip_ref=zipfile.ZipFile("10_food_classes_10_percent.zip")
+zip_ref.extractall()
+zip_ref.close()
+--2023-01-05 13:17:28--  https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_10_percent.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 142.251.12.128, 172.217.194.128, 74.125.200.128, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|142.251.12.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 168546183 (161M) [application/zip]
+Saving to: ‘10_food_classes_10_percent.zip’
+
+10_food_classes_10_ 100%[===================>] 160.74M  23.9MB/s    in 7.8s    
+
+2023-01-05 13:17:36 (20.7 MB/s) - ‘10_food_classes_10_percent.zip’ saved [168546183/168546183]
+
+[ ]
+#how many images in each folder
+import os
+
+#walk through 10 percent and list the file of directory 
+for dirpath,dirnames,filenames in os.walk("10_food_classes_10_percent"):
+  print(f"There are {len(dirnames)} directories and {len(filenames)} images in '{dirpath}'." )
+
+There are 2 directories and 0 images in '10_food_classes_10_percent'.
+There are 10 directories and 0 images in '10_food_classes_10_percent/train'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/ramen'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/hamburger'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/pizza'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/steak'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/sushi'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/chicken_curry'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/ice_cream'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/chicken_wings'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/grilled_salmon'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/fried_rice'.
+There are 10 directories and 0 images in '10_food_classes_10_percent/test'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/ramen'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/hamburger'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/pizza'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/steak'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/sushi'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/chicken_curry'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/ice_cream'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/chicken_wings'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/grilled_salmon'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/fried_rice'.
+create some data loaders(prepare the data)
+we will use ImageDataGenerator to load in our images in batches
+
+[ ]
+#setup input
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import tensorflow as tf
+IMAGE_SHAPE=(224,224)
+BATCH_SIZE=32
+EPOCHS=5
+
+train_dir="10_food_classes_10_percent/train/"
+test_dir="10_food_classes_10_percent/test/"
+
+train_datagen=ImageDataGenerator(rescale=1./255)
+test_datagen=ImageDataGenerator(rescale=1./225)
+
+#train our data
+train_data_10_percent= train_datagen.flow_from_directory(train_dir,
+                                                         target_size=IMAGE_SHAPE,
+                                                         batch_size=BATCH_SIZE,
+                                                         class_mode="categorical")
+#testing our data
+test_data_10_percent= train_datagen.flow_from_directory(test_dir,
+                                                         target_size=IMAGE_SHAPE,
+                                                         batch_size=BATCH_SIZE,
+                                                         class_mode="categorical")
+Found 750 images belonging to 10 classes.
+Found 2500 images belonging to 10 classes.
+setting up callbacks(Things to run while our model train)
+callback are the extra functionality you can add to your model. to be performed during and after training. some of the most popular callbacks are
+
+tracking experiment with tensorboard callback
+model checking with the modelcheckpoint callback
+stoppping a model from training before the it takes too long and overfits with the early stoppping callback
+[ ]
+#create a tensorflow callback(functionized because we need to create a new one for each model)
+import datetime
+
+def create_tensorboard_callback(dir_name,experiment_name):
+  log_dir=dir_name + "/" + experiment_name + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+  tensorboard_callback= tf.keras.callbacks.TensorBoard(log_dir=log_dir )
+  return tensorboard_callback
+
+creating model using tensorflow Hub
+In the past we have tried to build our own models layer by layer from scratch.
+
+now we are going to do the same process , expect the majority of our model layer's are going to come from tensorflowHub from tensrolfow hub we found the link: https://tfhub.dev/tensorflow/efficientnet/b0/feature-vector/1
+
+[ ]
+#let us compare the two models
+resnet_url = "https://tfhub.dev/google/imagenet/resnet_v2_50/feature_vector/4"
+
+efficientnet_url= "https://tfhub.dev/tensorflow/efficientnet/b0/feature-vector/1"
+[ ]
+# import dependencies 
+import tensorflow_hub as hub
+from tensorflow.keras import layers
+
+[ ]
+#let us create_model() function to create model from url
+def create_model(model_url,num_classes=10):
+  """
+  takes a tensorflowHub url and create a keras Sequential model with it
+
+  Args:
+    model_url(str): A tensorflow Hub feature extraction URL
+    num_classes(int): Number of output neurons in the output layers,
+    should be equal to the number of target classes , default 10.
+
+    Returns:
+    an uncompiled keras Sequential model with model_url as feature extractor 
+    layer and the dense output layer num classes output neurons.
+  """
+  #download the pretained model and it as a keras layer 
+  feature_extractor_layer=hub.KerasLayer(model_url,
+                                         trainable=False,#freeze all learned patterns
+                                         name="feature_extractor_layer",
+                                         input_shape=IMAGE_SHAPE+(3,)) 
+  
+  #create our own model
+  model=tf.keras.Sequential([
+      feature_extractor_layer,
+      layers.Dense(num_classes,activation="softmax",name="output_layer")
+  ])
+
+  return model
+
+
+creating resnet Tensorflow Hub feature extraction model
+[ ]
+#create resnet model
+resnet_model=create_model(resnet_url ,
+                          num_classes=train_data_10_percent.num_classes)
+[ ]
+#let's compile our resnet file
+resnet_model.compile(loss="categorical_crossentropy",
+                     optimizer=tf.keras.optimizers.Adam(),
+                     metrics=["accuracy"])
+[ ]
+resnet_model.summary()
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ feature_extractor_layer (Ke  (None, 2048)             23564800  
+ rasLayer)                                                       
+                                                                 
+ output_layer (Dense)        (None, 10)                20490     
+                                                                 
+=================================================================
+Total params: 23,585,290
+Trainable params: 20,490
+Non-trainable params: 23,564,800
+_________________________________________________________________
+[ ]
+#let's fit our resonate model to our data(10 precent of 10 classes)
+resnet_history=resnet_model.fit(train_data_10_percent,
+                                epochs=5,
+                                steps_per_epoch=len(train_data_10_percent),
+                                validation_data=test_data_10_percent,
+                                validation_steps=len(test_data_10_percent),
+                                callbacks=[create_tensorboard_callback(dir_name="tensorflow_hub",
+                                                                      experiment_name="resnet50V2")])
+Epoch 1/5
+24/24 [==============================] - 38s 1s/step - loss: 1.8722 - accuracy: 0.3787 - val_loss: 1.1428 - val_accuracy: 0.6532
+Epoch 2/5
+24/24 [==============================] - 17s 708ms/step - loss: 0.8989 - accuracy: 0.7373 - val_loss: 0.8369 - val_accuracy: 0.7356
+Epoch 3/5
+24/24 [==============================] - 17s 707ms/step - loss: 0.6431 - accuracy: 0.8133 - val_loss: 0.7440 - val_accuracy: 0.7548
+Epoch 4/5
+24/24 [==============================] - 17s 710ms/step - loss: 0.4855 - accuracy: 0.8773 - val_loss: 0.7173 - val_accuracy: 0.7564
+Epoch 5/5
+24/24 [==============================] - 16s 704ms/step - loss: 0.4018 - accuracy: 0.8920 - val_loss: 0.6676 - val_accuracy: 0.7780
+our tranfer learning feature extractor outformered all the preivous model we build by hand substantially and only 10 percent of the data
+
+[ ]
+#create the loss function to build the curve...
+import matplotlib.pyplot as plt
+
+def plot_loss_curve(history):
+  """
+  seperate the validation curve and loss curve
+  """
+  loss=history.history["loss"]
+  val_loss=history.history["val_loss"]
+
+  accuracy=history.history["accuracy"]
+  val_accuracy=history.history["val_accuracy"]
+
+  epochs=range(len(history.history["loss"]))
+
+  #plot the loss curve
+  plt.plot(epochs,loss,label="training_data")
+  plt.plot(epochs,val_loss,label="val_loss")
+  plt.title("loss")
+  plt.xlabel("epochs")
+  plt.legend()
+
+  #plot the validation curve
+  plt.figure()
+  plt.plot(epochs,accuracy,label="accuracy")
+  plt.plot(epochs,val_accuracy,label="val_accuracy")
+  plt.title("loss")
+  plt.xlabel("epochs")
+  plt.legend()
+
+[ ]
+#get our loss curve for resnet
+plot_loss_curve(resnet_history)
+
+creating our EfficientNetB2 model tensorflow hub extraction
+[ ]
+#create our model
+efficient=create_model(efficientnet_url,
+                       num_classes=train_data_10_percent.num_classes)
+[ ]
+#compile our model
+efficient.compile(loss="categorical_crossentropy",
+                  optimizer=tf.keras.optimizers.Adam(),
+                  metrics=["accuracy"])
+[ ]
+#fit our model
+efficient_history=efficient.fit(train_data_10_percent,
+              epochs=5,
+              steps_per_epoch=len(train_data_10_percent),
+              validation_data=test_data_10_percent,
+              validation_steps=len(test_data_10_percent),
+              callbacks=[create_tensorboard_callback(dir_name="tensorflow_hub",
+                                                    experiment_name="efficientnet")])
+Epoch 1/5
+24/24 [==============================] - 17s 690ms/step - loss: 0.6017 - accuracy: 0.8680 - val_loss: 0.6040 - val_accuracy: 0.8608
+Epoch 2/5
+24/24 [==============================] - 17s 722ms/step - loss: 0.5070 - accuracy: 0.8933 - val_loss: 0.5537 - val_accuracy: 0.8644
+Epoch 3/5
+24/24 [==============================] - 16s 675ms/step - loss: 0.4375 - accuracy: 0.9093 - val_loss: 0.5192 - val_accuracy: 0.8704
+Epoch 4/5
+24/24 [==============================] - 16s 672ms/step - loss: 0.3870 - accuracy: 0.9240 - val_loss: 0.4926 - val_accuracy: 0.8672
+Epoch 5/5
+24/24 [==============================] - 16s 666ms/step - loss: 0.3432 - accuracy: 0.9427 - val_loss: 0.4705 - val_accuracy: 0.8720
+[ ]
+#plot loss curve
+plot_loss_curve(efficient_history)
+
+[ ]
+#how many layers does our efficient model have
+len(efficient.layers[0].weights)
+309
+[ ]
+efficient.summary()
+Model: "sequential_1"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ feature_extractor_layer (Ke  (None, 1280)             4049564   
+ rasLayer)                                                       
+                                                                 
+ output_layer (Dense)        (None, 10)                12810     
+                                                                 
+=================================================================
+Total params: 4,062,374
+Trainable params: 12,810
+Non-trainable params: 4,049,564
+_________________________________________________________________
+[ ]
+resnet_model.summary()
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ feature_extractor_layer (Ke  (None, 2048)             23564800  
+ rasLayer)                                                       
+                                                                 
+ output_layer (Dense)        (None, 10)                20490     
+                                                                 
+=================================================================
+Total params: 23,585,290
+Trainable params: 20,490
+Non-trainable params: 23,564,800
+_________________________________________________________________
+Different types of transfer learning
+As in transfer learning - using an existing model with no changes whatsoever (eg using imagenet model on a 1000 Images,none of your own)
+
+feature extraction transfer learning:- using prelearned patterns of an existing model and ajust the ouput layer for you own problem.
+
+Fine tuning transfer learning:- use the prelearned patterns of an existing model and fine-tune many of the underlying layers(include our output)
+
+comparing our models results using TensorBoard
+note:- Once you put models on TensorBoard the models you have created is public. so if you are running private expriment. if you do not want all private it. better not use TensorBoard
+
+[ ]
+#upload TensorBoard dev records
+!tensorboard dev upload --logdir ./tensorflow_hub/ \
+--name "EfficientNetB0 vs ResNet50V2" \
+--description "comparing two different TF Hub features model architectures using 10 percent of the data" \
+--one_shot
+
+***** TensorBoard Uploader *****
+
+This will upload your TensorBoard logs to https://tensorboard.dev/ from
+the following directory:
+
+./tensorflow_hub/
+
+This TensorBoard will be visible to everyone. Do not upload sensitive
+data.
+
+Your use of this service is subject to Google's Terms of Service
+<https://policies.google.com/terms> and Privacy Policy
+<https://policies.google.com/privacy>, and TensorBoard.dev's Terms of Service
+<https://tensorboard.dev/policy/terms/>.
+
+This notice will not be shown again while you are logged into the uploader.
+To log out, run `tensorboard dev auth revoke`.
+
+Continue? (yes/NO) Yes
+
+Please visit this URL to authorize this application: https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=373649185512-8v619h5kft38l4456nm2dj4ubeqsrvh6.apps.googleusercontent.com&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&scope=openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&state=FSfkoSJUQeX2eIZ914tk5AeYvdvgLa&prompt=consent&access_type=offline
+Enter the authorization code: 4/1AWgavdc-dq5SqoHUp7CcT5NG1qKcQZHf4uU2xTOEcQMcPksTAg4XuO9-Nz4
+
+
+New experiment created. View your TensorBoard at: https://tensorboard.dev/experiment/vxbKmC1DSk2dn4r6KnMRXA/
+
+[2023-01-05T14:54:56] Started scanning logdir.
+[2023-01-05T14:55:05] Total uploaded: 66 scalars, 0 tensors, 4 binary objects (13.4 MB)
+[2023-01-05T14:55:05] Done scanning logdir.
+
+
+Done. View your TensorBoard at https://tensorboard.dev/experiment/vxbKmC1DSk2dn4r6KnMRXA/
+our tensorBoard are uploaded publically here :
+https://tensorboard.dev/experiment/vxbKmC1DSk2dn4r6KnMRXA/
+
+[ ]
+#check out the TensorBoard experiments you have
+!tensorboard dev list
+https://tensorboard.dev/experiment/vxbKmC1DSk2dn4r6KnMRXA/
+	Name                 EfficientNetB0 vs ResNet50V2
+	Description          comparing two different TF Hub features model architectures using 10 percent of the data
+	Id                   vxbKmC1DSk2dn4r6KnMRXA
+	Created              2023-01-05 14:54:56 (5 minutes ago)
+	Updated              2023-01-05 14:55:05 (5 minutes ago)
+	Runs                 7
+	Tags                 5
+	Scalars              66
+	Tensor bytes         0
+	Binary object bytes  14062807
+Total: 1 experiment(s)
+[ ]
+#delete the experiment 
+# !tensorboard dev delete --expriment_id vxbKmC1DSk2dn4r6KnMRXA
+Colab paid products - Cancel contracts here
