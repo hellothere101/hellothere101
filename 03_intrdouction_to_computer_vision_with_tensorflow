@@ -1,0 +1,1330 @@
+Loading...
+03_intrdouction_to_computer_vision_with_tensorflow.ipynb
+03_intrdouction_to_computer_vision_with_tensorflow.ipynb_
+Introduction to convolution neural networks and computer vision with Tensorflow
+computer vision:- practice writing algorithm which can discover patterns in visual data . such as a camera in a self driving car recognizing the car in front.
+
+Get the data
+[ ]
+import zipfile
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/pizza_steak.zip
+
+#unzip the download file
+zip_ref=zipfile.ZipFile("pizza_steak.zip")
+zip_ref.extractall()
+zip_ref.close()
+--2023-01-04 19:42:33--  https://storage.googleapis.com/ztm_tf_course/food_vision/pizza_steak.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 108.177.97.128, 108.177.125.128, 74.125.203.128, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|108.177.97.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 109540975 (104M) [application/zip]
+Saving to: ‘pizza_steak.zip’
+
+pizza_steak.zip     100%[===================>] 104.47M  29.0MB/s    in 4.4s    
+
+2023-01-04 19:42:39 (23.7 MB/s) - ‘pizza_steak.zip’ saved [109540975/109540975]
+
+Inspect the data(become one with it)
+It is a very crucial step in the beginning of any machine learning step project is becoming with the data
+
+for a computer project it usally mean to become one with the data visualizing many samples of your data
+
+[ ]
+import tensorflow as tf
+!ls pizza_steak
+test  train
+[ ]
+!ls pizza_steak/train/
+pizza  steak
+[ ]
+!ls pizza_steak/train/steak
+1000205.jpg  1647351.jpg  2238681.jpg  2824680.jpg  3375959.jpg  417368.jpg
+100135.jpg   1650002.jpg  2238802.jpg  2825100.jpg  3381560.jpg  4176.jpg
+101312.jpg   165639.jpg   2254705.jpg  2826987.jpg  3382936.jpg  42125.jpg
+1021458.jpg  1658186.jpg  225990.jpg   2832499.jpg  3386119.jpg  421476.jpg
+1032846.jpg  1658443.jpg  2260231.jpg  2832960.jpg  3388717.jpg  421561.jpg
+10380.jpg    165964.jpg   2268692.jpg  285045.jpg   3389138.jpg  438871.jpg
+1049459.jpg  167069.jpg   2271133.jpg  285147.jpg   3393547.jpg  43924.jpg
+1053665.jpg  1675632.jpg  227576.jpg   2855315.jpg  3393688.jpg  440188.jpg
+1068516.jpg  1678108.jpg  2283057.jpg  2856066.jpg  3396589.jpg  442757.jpg
+1068975.jpg  168006.jpg   2286639.jpg  2859933.jpg  339891.jpg	 443210.jpg
+1081258.jpg  1682496.jpg  2287136.jpg  286219.jpg   3417789.jpg  444064.jpg
+1090122.jpg  1684438.jpg  2291292.jpg  2862562.jpg  3425047.jpg  444709.jpg
+1093966.jpg  168775.jpg   229323.jpg   2865730.jpg  3434983.jpg  447557.jpg
+1098844.jpg  1697339.jpg  2300534.jpg  2878151.jpg  3435358.jpg  461187.jpg
+1100074.jpg  1710569.jpg  2300845.jpg  2880035.jpg  3438319.jpg  461689.jpg
+1105280.jpg  1714605.jpg  231296.jpg   2881783.jpg  3444407.jpg  465494.jpg
+1117936.jpg  1724387.jpg  2315295.jpg  2884233.jpg  345734.jpg	 468384.jpg
+1126126.jpg  1724717.jpg  2323132.jpg  2890573.jpg  3460673.jpg  477486.jpg
+114601.jpg   172936.jpg   2324994.jpg  2893832.jpg  3465327.jpg  482022.jpg
+1147047.jpg  1736543.jpg  2327701.jpg  2893892.jpg  3466159.jpg  482465.jpg
+1147883.jpg  1736968.jpg  2331076.jpg  2907177.jpg  3469024.jpg  483788.jpg
+1155665.jpg  1746626.jpg  233964.jpg   290850.jpg   3470083.jpg  493029.jpg
+1163977.jpg  1752330.jpg  2344227.jpg  2909031.jpg  3476564.jpg  503589.jpg
+1190233.jpg  1761285.jpg  234626.jpg   2910418.jpg  3478318.jpg  510757.jpg
+1208405.jpg  176508.jpg   234704.jpg   2912290.jpg  3488748.jpg  513129.jpg
+1209120.jpg  1772039.jpg  2357281.jpg  2916448.jpg  3492328.jpg  513842.jpg
+1212161.jpg  1777107.jpg  2361812.jpg  2916967.jpg  3518960.jpg  523535.jpg
+1213988.jpg  1787505.jpg  2365287.jpg  2927833.jpg  3522209.jpg  525041.jpg
+1219039.jpg  179293.jpg   2374582.jpg  2928643.jpg  3524429.jpg  534560.jpg
+1225762.jpg  1816235.jpg  239025.jpg   2929179.jpg  3528458.jpg  534633.jpg
+1230968.jpg  1822407.jpg  2390628.jpg  2936477.jpg  3531805.jpg  536535.jpg
+1236155.jpg  1823263.jpg  2392910.jpg  2938012.jpg  3536023.jpg  541410.jpg
+1241193.jpg  1826066.jpg  2394465.jpg  2938151.jpg  3538682.jpg  543691.jpg
+1248337.jpg  1828502.jpg  2395127.jpg  2939678.jpg  3540750.jpg  560503.jpg
+1257104.jpg  1828969.jpg  2396291.jpg  2940544.jpg  354329.jpg	 561972.jpg
+126345.jpg   1829045.jpg  2400975.jpg  2940621.jpg  3547166.jpg  56240.jpg
+1264050.jpg  1829088.jpg  2403776.jpg  2949079.jpg  3553911.jpg  56409.jpg
+1264154.jpg  1836332.jpg  2403907.jpg  295491.jpg   3556871.jpg  564530.jpg
+1264858.jpg  1839025.jpg  240435.jpg   296268.jpg   355715.jpg	 568972.jpg
+127029.jpg   1839481.jpg  2404695.jpg  2964732.jpg  356234.jpg	 576725.jpg
+1289900.jpg  183995.jpg   2404884.jpg  2965021.jpg  3571963.jpg  588739.jpg
+1290362.jpg  184110.jpg   2407770.jpg  2966859.jpg  3576078.jpg  590142.jpg
+1295457.jpg  184226.jpg   2412263.jpg  2977966.jpg  3577618.jpg  60633.jpg
+1312841.jpg  1846706.jpg  2425062.jpg  2979061.jpg  3577732.jpg  60655.jpg
+1313316.jpg  1849364.jpg  2425389.jpg  2983260.jpg  3578934.jpg  606820.jpg
+1324791.jpg  1849463.jpg  2435316.jpg  2984311.jpg  358042.jpg	 612551.jpg
+1327567.jpg  1849542.jpg  2437268.jpg  2988960.jpg  358045.jpg	 614975.jpg
+1327667.jpg  1853564.jpg  2437843.jpg  2989882.jpg  3591821.jpg  616809.jpg
+1333055.jpg  1869467.jpg  2440131.jpg  2995169.jpg  359330.jpg	 628628.jpg
+1334054.jpg  1870942.jpg  2443168.jpg  2996324.jpg  3601483.jpg  632427.jpg
+1335556.jpg  187303.jpg   2446660.jpg  3000131.jpg  3606642.jpg  636594.jpg
+1337814.jpg  187521.jpg   2455944.jpg  3002350.jpg  3609394.jpg  637374.jpg
+1340977.jpg  1888450.jpg  2458401.jpg  3007772.jpg  361067.jpg	 640539.jpg
+1343209.jpg  1889336.jpg  2487306.jpg  3008192.jpg  3613455.jpg  644777.jpg
+134369.jpg   1907039.jpg  248841.jpg   3009617.jpg  3621464.jpg  644867.jpg
+1344105.jpg  1925230.jpg  2489716.jpg  3011642.jpg  3621562.jpg  658189.jpg
+134598.jpg   1927984.jpg  2490489.jpg  3020591.jpg  3621565.jpg  660900.jpg
+1346387.jpg  1930577.jpg  2495884.jpg  3030578.jpg  3623556.jpg  663014.jpg
+1348047.jpg  1937872.jpg  2495903.jpg  3047807.jpg  3640915.jpg  664545.jpg
+1351372.jpg  1941807.jpg  2499364.jpg  3059843.jpg  3643951.jpg  667075.jpg
+1362989.jpg  1942333.jpg  2500292.jpg  3074367.jpg  3653129.jpg  669180.jpg
+1367035.jpg  1945132.jpg  2509017.jpg  3082120.jpg  3656752.jpg  669960.jpg
+1371177.jpg  1961025.jpg  250978.jpg   3094354.jpg  3663518.jpg  6709.jpg
+1375640.jpg  1966300.jpg  2514432.jpg  3095301.jpg  3663800.jpg  674001.jpg
+1382427.jpg  1966967.jpg  2526838.jpg  3099645.jpg  3664376.jpg  676189.jpg
+1392718.jpg  1969596.jpg  252858.jpg   3100476.jpg  3670607.jpg  681609.jpg
+1395906.jpg  1971757.jpg  2532239.jpg  3110387.jpg  3671021.jpg  6926.jpg
+1400760.jpg  1976160.jpg  2534567.jpg  3113772.jpg  3671877.jpg  703556.jpg
+1403005.jpg  1984271.jpg  2535431.jpg  3116018.jpg  368073.jpg	 703909.jpg
+1404770.jpg  1987213.jpg  2535456.jpg  3128952.jpg  368162.jpg	 704316.jpg
+140832.jpg   1987639.jpg  2538000.jpg  3130412.jpg  368170.jpg	 714298.jpg
+141056.jpg   1995118.jpg  2543081.jpg  3136.jpg     3693649.jpg  720060.jpg
+141135.jpg   1995252.jpg  2544643.jpg  313851.jpg   3700079.jpg  726083.jpg
+1413972.jpg  199754.jpg   2547797.jpg  3140083.jpg  3704103.jpg  728020.jpg
+1421393.jpg  2002400.jpg  2548974.jpg  3140147.jpg  3707493.jpg  732986.jpg
+1428947.jpg  2011264.jpg  2549316.jpg  3142045.jpg  3716881.jpg  734445.jpg
+1433912.jpg  2012996.jpg  2561199.jpg  3142618.jpg  3724677.jpg  735441.jpg
+143490.jpg   2013535.jpg  2563233.jpg  3142674.jpg  3727036.jpg  740090.jpg
+1445352.jpg  2017387.jpg  256592.jpg   3143192.jpg  3727491.jpg  745189.jpg
+1446401.jpg  2018173.jpg  2568848.jpg  314359.jpg   3736065.jpg  752203.jpg
+1453991.jpg  2020613.jpg  2573392.jpg  3157832.jpg  37384.jpg	 75537.jpg
+1456841.jpg  2032669.jpg  2592401.jpg  3159818.jpg  3743286.jpg  756655.jpg
+146833.jpg   203450.jpg   2599817.jpg  3162376.jpg  3745515.jpg  762210.jpg
+1476404.jpg  2034628.jpg  2603058.jpg  3168620.jpg  3750472.jpg  763690.jpg
+1485083.jpg  2036920.jpg  2606444.jpg  3171085.jpg  3752362.jpg  767442.jpg
+1487113.jpg  2038418.jpg  2614189.jpg  317206.jpg   3766099.jpg  786409.jpg
+148916.jpg   2042975.jpg  2614649.jpg  3173444.jpg  3770370.jpg  80215.jpg
+149087.jpg   2045647.jpg  2615718.jpg  3180182.jpg  377190.jpg	 802348.jpg
+1493169.jpg  2050584.jpg  2619625.jpg  31881.jpg    3777020.jpg  804684.jpg
+149682.jpg   2052542.jpg  2622140.jpg  3191589.jpg  3777482.jpg  812163.jpg
+1508094.jpg  2056627.jpg  262321.jpg   3204977.jpg  3781152.jpg  813486.jpg
+1512226.jpg  2062248.jpg  2625330.jpg  320658.jpg   3787809.jpg  819027.jpg
+1512347.jpg  2081995.jpg  2628106.jpg  3209173.jpg  3788729.jpg  822550.jpg
+1524526.jpg  2087958.jpg  2629750.jpg  3223400.jpg  3790962.jpg  823766.jpg
+1530833.jpg  2088030.jpg  2643906.jpg  3223601.jpg  3792514.jpg  827764.jpg
+1539499.jpg  2088195.jpg  2644457.jpg  3241894.jpg  379737.jpg	 830007.jpg
+1541672.jpg  2090493.jpg  2648423.jpg  3245533.jpg  3807440.jpg  838344.jpg
+1548239.jpg  2090504.jpg  2651300.jpg  3245622.jpg  381162.jpg	 853327.jpg
+1550997.jpg  2125877.jpg  2653594.jpg  3247009.jpg  3812039.jpg  854150.jpg
+1552530.jpg  2129685.jpg  2661577.jpg  3253588.jpg  3829392.jpg  864997.jpg
+15580.jpg    2133717.jpg  2668916.jpg  3260624.jpg  3830872.jpg  885571.jpg
+1559052.jpg  2136662.jpg  268444.jpg   326587.jpg   38442.jpg	 907107.jpg
+1563266.jpg  213765.jpg   2691461.jpg  32693.jpg    3855584.jpg  908261.jpg
+1567554.jpg  2138335.jpg  2706403.jpg  3271253.jpg  3857508.jpg  910672.jpg
+1575322.jpg  2140776.jpg  270687.jpg   3274423.jpg  386335.jpg	 911803.jpg
+1588879.jpg  214320.jpg   2707522.jpg  3280453.jpg  3867460.jpg  91432.jpg
+1594719.jpg  2146963.jpg  2711806.jpg  3298495.jpg  3868959.jpg  914570.jpg
+1595869.jpg  215222.jpg   2716993.jpg  330182.jpg   3869679.jpg  922752.jpg
+1598345.jpg  2154126.jpg  2724554.jpg  3306627.jpg  388776.jpg	 923772.jpg
+1598885.jpg  2154779.jpg  2738227.jpg  3315727.jpg  3890465.jpg  926414.jpg
+1600179.jpg  2159975.jpg  2748917.jpg  331860.jpg   3894222.jpg  931356.jpg
+1600794.jpg  2163079.jpg  2760475.jpg  332232.jpg   3895825.jpg  937133.jpg
+160552.jpg   217250.jpg   2761427.jpg  3322909.jpg  389739.jpg	 945791.jpg
+1606596.jpg  2172600.jpg  2765887.jpg  332557.jpg   3916407.jpg  947877.jpg
+1615395.jpg  2173084.jpg  2768451.jpg  3326734.jpg  393349.jpg	 952407.jpg
+1618011.jpg  217996.jpg   2771149.jpg  3330642.jpg  393494.jpg	 952437.jpg
+1619357.jpg  2193684.jpg  2779040.jpg  3333128.jpg  398288.jpg	 955466.jpg
+1621763.jpg  220341.jpg   2788312.jpg  3333735.jpg  40094.jpg	 9555.jpg
+1623325.jpg  22080.jpg	  2788759.jpg  3334973.jpg  401094.jpg	 961341.jpg
+1624450.jpg  2216146.jpg  2796102.jpg  3335013.jpg  401144.jpg	 97656.jpg
+1624747.jpg  2222018.jpg  280284.jpg   3335267.jpg  401651.jpg	 979110.jpg
+1628861.jpg  2223787.jpg  2807888.jpg  3346787.jpg  405173.jpg	 980247.jpg
+1632774.jpg  2230959.jpg  2815172.jpg  3364420.jpg  405794.jpg	 982988.jpg
+1636831.jpg  2232310.jpg  2818805.jpg  336637.jpg   40762.jpg	 987732.jpg
+1645470.jpg  2233395.jpg  2823872.jpg  3372616.jpg  413325.jpg	 996684.jpg
+[ ]
+import os
+
+#walk through the pizza steak directory and list the number of files
+for dirpath,dirnames,filenames in os.walk("pizza_steak"):
+  print(f"There are {len(dirnames)} directories and {len(filenames)} images in '{dirpath}'.")
+There are 2 directories and 0 images in 'pizza_steak'.
+There are 2 directories and 0 images in 'pizza_steak/test'.
+There are 0 directories and 250 images in 'pizza_steak/test/pizza'.
+There are 0 directories and 250 images in 'pizza_steak/test/steak'.
+There are 2 directories and 0 images in 'pizza_steak/train'.
+There are 0 directories and 750 images in 'pizza_steak/train/pizza'.
+There are 0 directories and 750 images in 'pizza_steak/train/steak'.
+[ ]
+!ls -la pizza_steak
+total 16
+drwxr-xr-x 4 root root 4096 Jan  4 19:42 .
+drwxr-xr-x 1 root root 4096 Jan  4 19:42 ..
+drwxr-xr-x 4 root root 4096 Jan  4 19:42 test
+drwxr-xr-x 4 root root 4096 Jan  4 19:42 train
+[ ]
+#another way to find no of images in a file
+num_steak_images_train= len(os.listdir("pizza_steak/train/steak"))
+
+num_steak_images_train
+750
+To vizaulize our images, first let's get the class name programmatically
+
+[ ]
+#get the class name program programmatically
+import pathlib
+import numpy as np
+data_dir=pathlib.Path("pizza_steak/train")
+class_names=np.array(sorted([item.name for item in data_dir.glob("*")])) #create a list of class name from the subdirectory
+print(class_names)
+['pizza' 'steak']
+[ ]
+#let's us vizualize our images 
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import random
+
+def view_random_image(target_dir,target_class):
+  #set up the target directory here (we will view the images from here)
+  target_folder=target_dir + target_class
+
+  #get a random image path
+  random_image= random.sample(os.listdir(target_folder),1)
+  print(random_image)
+
+  #read in the image and then plot it using matploblib
+  img=mpimg.imread(target_folder + "/" + random_image[0])
+  plt.imshow(img)
+  plt.title("target_class")
+  plt.axis("off")
+
+  print(f"image shape: {img.shape}") #show the shape of the image
+
+  return img
+[ ]
+#view random image from the training dataset
+img= view_random_image(target_dir="pizza_steak/train/", target_class="pizza")
+
+[ ]
+tf.constant(img)
+<tf.Tensor: shape=(341, 512, 3), dtype=uint8, numpy=
+array([[[ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        ...,
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19]],
+
+       [[ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        ...,
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19]],
+
+       [[ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        ...,
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19]],
+
+       ...,
+
+       [[ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        ...,
+        [ 7,  7, 17],
+        [ 7,  7, 17],
+        [ 7,  7, 17]],
+
+       [[ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        ...,
+        [20, 20, 30],
+        [20, 20, 30],
+        [20, 20, 30]],
+
+       [[ 9,  9, 19],
+        [ 9,  9, 19],
+        [ 9,  9, 19],
+        ...,
+        [11, 11, 21],
+        [11, 11, 21],
+        [11, 11, 21]]], dtype=uint8)>
+[ ]
+#view the image shape
+img.shape #return width,height,color channel
+
+(341, 512, 3)
+[ ]
+#scale our image and normlize it
+img=img/255.
+end-to-end example
+let's us build a conventional neural network to find patterns in our image ,more specifically a need to way to
+
+load our images
+preprocessing our images
+Build our CNN model
+Fit the cnn to our training model
+[ ]
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+#set the seed
+tf.random.set_seed(42)
+
+#preprocess data
+train_datagen=ImageDataGenerator(rescale=1./255)
+valid_datagen=ImageDataGenerator(rescale=1./255)
+
+#set our path to directories
+train_dir="/content/pizza_steak/train"
+test_dir="/content/pizza_steak/test"
+
+#import data from the directories and turn it into batches
+train_data=train_datagen.flow_from_directory(directory=train_dir,
+                                             batch_size=32,
+                                             target_size=(224,224),
+                                             class_mode="binary",
+                                             seed=42)
+valid_data=valid_datagen.flow_from_directory(directory=test_dir,
+                                             batch_size=32,
+                                             target_size=(224,224),
+                                             class_mode="binary",
+                                             seed=42)
+
+#build the CNN model
+model_1=tf.keras.Sequential([
+    tf.keras.layers.Conv2D(filters=10,
+                            kernel_size=3,
+                            activation="relu",
+                            input_shape=(224,224,3)),
+    tf.keras.layers.Conv2D(10,3,activation="relu"),
+    tf.keras.layers.MaxPool2D(pool_size=2,
+                              padding="valid"),
+    tf.keras.layers.Conv2D(10,3,activation="relu"),
+    tf.keras.layers.Conv2D(10,3,activation="relu"),
+    tf.keras.layers.MaxPool2D(2),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+]) 
+
+#compile our CNN model
+model_1.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#Fit our model
+history_1=model_1.fit(train_data,
+                      epochs=5,
+                      steps_per_epoch=len(train_data),
+                      validation_data=valid_data,
+                      validation_steps=len(valid_data))
+Found 1500 images belonging to 2 classes.
+Found 500 images belonging to 2 classes.
+Epoch 1/5
+47/47 [==============================] - 122s 3s/step - loss: 0.6095 - accuracy: 0.6167 - val_loss: 0.3914 - val_accuracy: 0.8420
+Epoch 2/5
+47/47 [==============================] - 126s 3s/step - loss: 0.4380 - accuracy: 0.7960 - val_loss: 0.3447 - val_accuracy: 0.8680
+Epoch 3/5
+47/47 [==============================] - 126s 3s/step - loss: 0.4009 - accuracy: 0.8227 - val_loss: 0.3119 - val_accuracy: 0.8760
+Epoch 4/5
+47/47 [==============================] - 117s 3s/step - loss: 0.3702 - accuracy: 0.8507 - val_loss: 0.3144 - val_accuracy: 0.8840
+Epoch 5/5
+47/47 [==============================] - 126s 3s/step - loss: 0.3177 - accuracy: 0.8713 - val_loss: 0.3259 - val_accuracy: 0.8580
+if your model takes more then 10s to run make sure to cahnge the runtime type above to GPU
+[ ]
+#Epoch 1/5
+#47/47 [==============================] - 119s 2s/step - loss: 0.5621 - accuracy: 0.7207 - val_loss: 0.4130 - val_accuracy: 0.8300
+[ ]
+model_1.summary()
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d (Conv2D)             (None, 222, 222, 10)      280       
+                                                                 
+ conv2d_1 (Conv2D)           (None, 220, 220, 10)      910       
+                                                                 
+ max_pooling2d (MaxPooling2D  (None, 110, 110, 10)     0         
+ )                                                               
+                                                                 
+ conv2d_2 (Conv2D)           (None, 108, 108, 10)      910       
+                                                                 
+ conv2d_3 (Conv2D)           (None, 106, 106, 10)      910       
+                                                                 
+ max_pooling2d_1 (MaxPooling  (None, 53, 53, 10)       0         
+ 2D)                                                             
+                                                                 
+ flatten (Flatten)           (None, 28090)             0         
+                                                                 
+ dense (Dense)               (None, 1)                 28091     
+                                                                 
+=================================================================
+Total params: 31,101
+Trainable params: 31,101
+Non-trainable params: 0
+_________________________________________________________________
+using same model as before
+Let's us replicate the model we are just build in a previous section to see if it works work with our current image data.
+
+[ ]
+#set random seed
+tf.random.set_seed(42)
+
+#create the model replicates 
+model_2=tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(224,224,3)),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#compile the model 
+model_2.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#fit our model
+model_2.fit(train_data,
+            epochs=5,
+            steps_per_epoch=len(train_data),
+            validation_data=valid_data,
+            validation_steps=len(valid_data))
+Epoch 1/5
+47/47 [==============================] - 15s 310ms/step - loss: 1.6062 - accuracy: 0.5060 - val_loss: 0.6932 - val_accuracy: 0.5000
+Epoch 2/5
+47/47 [==============================] - 15s 331ms/step - loss: 0.6932 - accuracy: 0.5000 - val_loss: 0.6932 - val_accuracy: 0.5000
+Epoch 3/5
+47/47 [==============================] - 12s 251ms/step - loss: 0.6932 - accuracy: 0.5000 - val_loss: 0.6932 - val_accuracy: 0.5000
+Epoch 4/5
+47/47 [==============================] - 14s 307ms/step - loss: 0.6932 - accuracy: 0.5000 - val_loss: 0.6932 - val_accuracy: 0.5000
+Epoch 5/5
+47/47 [==============================] - 14s 305ms/step - loss: 0.6932 - accuracy: 0.5000 - val_loss: 0.6932 - val_accuracy: 0.5000
+<keras.callbacks.History at 0x7f765a625100>
+[ ]
+#get the summary of model 2
+model_2.summary()
+Model: "sequential_1"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ flatten_1 (Flatten)         (None, 150528)            0         
+                                                                 
+ dense_1 (Dense)             (None, 4)                 602116    
+                                                                 
+ dense_2 (Dense)             (None, 4)                 20        
+                                                                 
+ dense_3 (Dense)             (None, 1)                 5         
+                                                                 
+=================================================================
+Total params: 602,141
+Trainable params: 602,141
+Non-trainable params: 0
+_________________________________________________________________
+Despite having 20x more parameters then model_1 our model_2 performs terribly.. let's try to improve it.
+
+[ ]
+#set the random seed
+tf.random.set_seed(42)
+
+#create the model as above but notch it up a beat
+model_3=tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(224,224,3)),
+    tf.keras.layers.Dense(100,activation="relu"),
+    tf.keras.layers.Dense(100,activation="relu"),
+    tf.keras.layers.Dense(100,activation="relu"),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#compile the model
+model_3.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#fit our model
+model_3.fit(train_data,
+            epochs=5,
+            steps_per_epoch=len(train_data),
+            validation_data=valid_data,
+            validation_steps=len(valid_data))
+Epoch 1/5
+47/47 [==============================] - 19s 388ms/step - loss: 2.6991 - accuracy: 0.6407 - val_loss: 1.2603 - val_accuracy: 0.6000
+Epoch 2/5
+47/47 [==============================] - 17s 364ms/step - loss: 0.8379 - accuracy: 0.7020 - val_loss: 2.1726 - val_accuracy: 0.5380
+Epoch 3/5
+47/47 [==============================] - 17s 368ms/step - loss: 0.7669 - accuracy: 0.7180 - val_loss: 0.7862 - val_accuracy: 0.6740
+Epoch 4/5
+47/47 [==============================] - 17s 370ms/step - loss: 0.4939 - accuracy: 0.7813 - val_loss: 0.6124 - val_accuracy: 0.7240
+Epoch 5/5
+47/47 [==============================] - 18s 373ms/step - loss: 0.5030 - accuracy: 0.8020 - val_loss: 0.4422 - val_accuracy: 0.7940
+<keras.callbacks.History at 0x7f765f00d490>
+[ ]
+#get the summary of our model
+model_3.summary()
+Model: "sequential_2"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ flatten_2 (Flatten)         (None, 150528)            0         
+                                                                 
+ dense_4 (Dense)             (None, 100)               15052900  
+                                                                 
+ dense_5 (Dense)             (None, 100)               10100     
+                                                                 
+ dense_6 (Dense)             (None, 100)               10100     
+                                                                 
+ dense_7 (Dense)             (None, 1)                 101       
+                                                                 
+=================================================================
+Total params: 15,073,201
+Trainable params: 15,073,201
+Non-trainable params: 0
+_________________________________________________________________
+Binary classification: Let's break it down
+Become one with the data(Visualize,Visualize,Visualize)
+preprocessing the data(The main job here was scaling and normalizing)
+created a model(start with a baseline)
+fit the model
+Evaluate the model
+adjust the model different parameters and improve the model(try to beat our baseline)
+Repeat until satified (experiment,experiment,experiment)
+1. become one with the data
+[ ]
+#visualize the data
+plt.figure()
+plt.subplot(1,2,1)
+steak_img=view_random_image("pizza_steak/train/","steak")
+plt.subplot(1,2,2)
+pizza_img=view_random_image("pizza_steak/train/","pizza")
+
+2. preprocess a data(perpare it for a model)
+[ ]
+#define our directory dataset paths
+train_dir="pizza_steak/train"
+test_dir="pizza_steak/test"
+
+
+our step is to turn our data into batches
+
+A batch is a small subset of data. Rather then at all ~10,000 images at one time a model might only look at 32 at a time.
+
+does this for a couple of reason:
+
+10,000 images (or more) might not fit into memory of your processor
+Trying to learn 10,000 images at one hit could result in the model not been able to learn every well. why 32? because 32 is good for the health...
+[ ]
+#create train and test data generators and rescale the data
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+train_datagen=ImageDataGenerator(rescale=1./255)
+valid_datagen=ImageDataGenerator(rescale=1./255)
+
+#load our image data from the directories and turn them in batches
+train_data=train_datagen.flow_from_directory(directory=train_dir, #directory of your image
+                                             batch_size=32, # the no of images processed each time
+                                             target_size=(224,224),#target size of the images(height,width)
+                                             class_mode="binary") #type of data you are working with
+
+test_data=valid_datagen.flow_from_directory(directory=test_dir,
+                                            batch_size=32,
+                                            target_size=(224,224),
+                                            class_mode="binary")
+Found 1500 images belonging to 2 classes.
+Found 500 images belonging to 2 classes.
+[ ]
+images,labels = train_data.next() #get the next batch of images for us
+len(images),len(labels)
+(32, 32)
+[ ]
+#How many batches are there ?
+len(train_data)
+47
+[ ]
+#get the first images
+images[:2],images[0].shape
+(array([[[[0.47058827, 0.40784317, 0.34509805],
+          [0.4784314 , 0.427451  , 0.3647059 ],
+          [0.48627454, 0.43529415, 0.37254903],
+          ...,
+          [0.8313726 , 0.70980394, 0.48627454],
+          [0.8431373 , 0.73333335, 0.5372549 ],
+          [0.87843144, 0.7725491 , 0.5882353 ]],
+ 
+         [[0.50980395, 0.427451  , 0.36078432],
+          [0.5058824 , 0.42352945, 0.35686275],
+          [0.5137255 , 0.4431373 , 0.3647059 ],
+          ...,
+          [0.82745105, 0.7058824 , 0.48235297],
+          [0.82745105, 0.70980394, 0.5058824 ],
+          [0.8431373 , 0.73333335, 0.5372549 ]],
+ 
+         [[0.5254902 , 0.427451  , 0.34901962],
+          [0.5372549 , 0.43921572, 0.36078432],
+          [0.5372549 , 0.45098042, 0.36078432],
+          ...,
+          [0.82745105, 0.7019608 , 0.4784314 ],
+          [0.82745105, 0.7058824 , 0.49411768],
+          [0.8352942 , 0.7176471 , 0.5137255 ]],
+ 
+         ...,
+ 
+         [[0.77647066, 0.5647059 , 0.2901961 ],
+          [0.7803922 , 0.53333336, 0.22352943],
+          [0.79215693, 0.5176471 , 0.18039216],
+          ...,
+          [0.30588236, 0.2784314 , 0.24705884],
+          [0.24705884, 0.23137257, 0.19607845],
+          [0.2784314 , 0.27450982, 0.25490198]],
+ 
+         [[0.7843138 , 0.57254905, 0.29803923],
+          [0.79215693, 0.54509807, 0.24313727],
+          [0.8000001 , 0.5254902 , 0.18823531],
+          ...,
+          [0.2627451 , 0.23529413, 0.20392159],
+          [0.24313727, 0.227451  , 0.19215688],
+          [0.26666668, 0.2627451 , 0.24313727]],
+ 
+         [[0.7960785 , 0.59607846, 0.3372549 ],
+          [0.7960785 , 0.5647059 , 0.26666668],
+          [0.81568635, 0.54901963, 0.22352943],
+          ...,
+          [0.23529413, 0.19607845, 0.16078432],
+          [0.3019608 , 0.26666668, 0.24705884],
+          [0.26666668, 0.2509804 , 0.24705884]]],
+ 
+ 
+        [[[0.38823533, 0.4666667 , 0.36078432],
+          [0.3921569 , 0.46274513, 0.36078432],
+          [0.38431376, 0.454902  , 0.36078432],
+          ...,
+          [0.5294118 , 0.627451  , 0.54509807],
+          [0.5294118 , 0.627451  , 0.54509807],
+          [0.5411765 , 0.6392157 , 0.5568628 ]],
+ 
+         [[0.38431376, 0.454902  , 0.3529412 ],
+          [0.3921569 , 0.46274513, 0.36078432],
+          [0.39607847, 0.4666667 , 0.37254903],
+          ...,
+          [0.54509807, 0.6431373 , 0.5686275 ],
+          [0.5529412 , 0.6509804 , 0.5764706 ],
+          [0.5647059 , 0.6627451 , 0.5882353 ]],
+ 
+         [[0.3921569 , 0.46274513, 0.36078432],
+          [0.38431376, 0.454902  , 0.3529412 ],
+          [0.4039216 , 0.47450984, 0.3803922 ],
+          ...,
+          [0.5764706 , 0.67058825, 0.6156863 ],
+          [0.5647059 , 0.6666667 , 0.6156863 ],
+          [0.5647059 , 0.6666667 , 0.6156863 ]],
+ 
+         ...,
+ 
+         [[0.47058827, 0.5647059 , 0.4784314 ],
+          [0.4784314 , 0.5764706 , 0.4901961 ],
+          [0.48235297, 0.5803922 , 0.49803925],
+          ...,
+          [0.39607847, 0.42352945, 0.3019608 ],
+          [0.37647063, 0.40000004, 0.2901961 ],
+          [0.3803922 , 0.4039216 , 0.3019608 ]],
+ 
+         [[0.45098042, 0.5529412 , 0.454902  ],
+          [0.46274513, 0.5647059 , 0.4666667 ],
+          [0.47058827, 0.57254905, 0.47450984],
+          ...,
+          [0.40784317, 0.43529415, 0.3137255 ],
+          [0.39607847, 0.41960788, 0.31764707],
+          [0.38823533, 0.40784317, 0.31764707]],
+ 
+         [[0.47450984, 0.5764706 , 0.47058827],
+          [0.47058827, 0.57254905, 0.4666667 ],
+          [0.46274513, 0.5647059 , 0.4666667 ],
+          ...,
+          [0.4039216 , 0.427451  , 0.31764707],
+          [0.3921569 , 0.4156863 , 0.3137255 ],
+          [0.4039216 , 0.42352945, 0.3372549 ]]]], dtype=float32),
+ (224, 224, 3))
+[ ]
+#view the first batch of labels
+labels
+array([1., 1., 0., 1., 0., 0., 0., 1., 0., 1., 0., 0., 1., 0., 0., 0., 1.,
+       1., 0., 1., 0., 1., 1., 1., 0., 0., 0., 0., 0., 1., 0., 1.],
+      dtype=float32)
+[ ]
+1500/32
+46.875
+3.create a CNN model(start a baseline)
+baseline is relatively simple model or existing results that you setup when beginning a machine learning experiment and then you keep experimenting, you try to beat the baseline.
+
+note:- There could a thousand of architecture in tensorflow that is why you should try to start small and then get higher as required (e.g look what is the best in the field for your problem)
+
+[ ]
+#make creating our model a little easier 
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Flatten,Dense,Conv2D,MaxPool2D,Activation
+from tensorflow.keras import Sequential  
+[ ]
+#create the model (this will be the baseline , a layer neural convolutional network)
+model_4=Sequential([
+    Conv2D(filters=10, # the no of sliding windows going across an input(more filter more complex )
+           kernel_size=3, # the size of the sliding window going across the input 
+           strides=1, # size of the steps the slidind window takes across an input
+           padding="valid", # if output shape is equal input shape if "valid" output_shape gets compressed
+           activation="relu",
+           input_shape=(224,224,3) #input layer with input shape
+    ),
+    Conv2D(10,3,activation="relu"),
+    Conv2D(10,3,activation="relu"),
+    Flatten(),
+    Dense(1,activation="sigmoid") #output layer 
+])
+[ ]
+# compile the model
+model_4.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+               optimizer=tf.keras.optimizers.Adam(),
+               metrics=["accuracy"])
+
+
+5.Fit the model
+[ ]
+#check the length of the training and the testing test generators
+len(train_data),len(test_data)
+(47, 16)
+[ ]
+#fit the model
+hitsory_4=model_4.fit(train_data,epochs=5,steps_per_epoch=len(train_data),validation_data=valid_data,validation_steps=len(valid_data))
+
+[ ]
+model_1.evaluate(test_data)
+[ ]
+model_1.summary()
+5. Evaluate the model
+It looks like our model is learning something, let's evaluate them.
+
+[ ]
+#let's plot our training curve
+import pandas as pd
+pd.DataFrame(hitsory_4.history).plot(figsize=(10,7))
+[ ]
+#plot the validation and the training curve seperately
+def plot_loss_curve(history):
+  """
+  Returns the validation and the training curve seperately
+  """
+  loss=history.history["loss"]
+  val_loss=history.history["val_loss"]
+
+  accuracy=history.history["accuracy"]
+  val_accuracy=history.history["val_accuracy"]
+
+  epochs=range(len(history.history["loss"])) #how many epochs did we run for
+
+  #plot the loss
+  plt.plot(epochs,loss,label="training loss")
+  plt.plot(epochs,val_loss,label="val_loss")
+  plt.title("loss")
+  plt.xlabel("epochs")
+  plt.legend()
+
+  #plot the accuracy'
+  plt.figure()
+  plt.plot(epochs,accuracy,label="accuracy data")
+  plt.plot(epochs,val_accuracy,label="val_accuracy")
+  plt.title("accuracy")
+  plt.xlabel("epochs")
+  plt.legend()
+
+note :- when a model starts to increase , it's likely that the model is overfitting the training data set.
+
+[ ]
+#check the loss and accuracy of the model_4
+plot_loss_curve(hitsory_4)
+adjust the model parameters
+Fitting a machine learning model comes in three steps:
+
+create a baseline
+beat the baseline by overfitting a larger model
+reduce overfitting
+ways to induce overfiting:-
+
+Increase the number of conv layers
+Increase the number of conv filters
+Add another dense layers to the output of Fattern layers
+Reduce overfitting
+
+Add augmentation
+Add regulization(such as MaxPool2D)
+Add more data
+reducing overfitting is also known as regulization.
+
+[ ]
+#create the model(This is going to our new base line)
+
+#set the random seed
+tf.random.set_seed(42)
+
+#build the model 
+model_5=tf.keras.Sequential([
+    tf.keras.layers.Conv2D(filters=10,
+                         kernel_size=3,
+                         strides=1,
+                         padding="valid",
+                         activation="relu",
+                         input_shape=(224,224,3)),
+    MaxPool2D(pool_size=2),
+    tf.keras.layers.Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    tf.keras.layers.Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#compile the model
+model_5.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#fit the model
+history_5=model_5.fit(train_data,epochs=5,steps_per_epoch=len(train_data),validation_data=valid_data,validation_steps=len(valid_data))
+
+[ ]
+#Get summary
+model_5.summary()
+[ ]
+#plot lost curve
+plot_loss_curve(history_5)
+reducing the overfitting with augmentation
+opening our bag of tricks and introduction data augmentation
+[ ]
+#create ImageDataGenerator training instance with data augmentation
+train_datagen_augmentation=ImageDataGenerator(rescale=1/255.,
+                                              rotation_range=0.2, #how much you want to rotate you image
+                                              shear_range=0.2, #how much you want to shear an image
+                                              zoom_range=0.2, #how much you wan to zoom an image
+                                              width_shift_range=0.2,#how much you can move the image on the x-axis
+                                              height_shift_range=0.3, #how much you can move the image on the Y-axis
+                                              horizontal_flip=True) #do you want to flip your image
+
+#create ImagedataGenerator without data augmentation
+train_datagen= ImageDataGenerator(rescale=1/255.)
+
+#create ImageDataGenerator without data augmentation for the test data set
+test_datagen=ImageDataGenerator(rescale=1/255.)
+Double-click (or enter) to edit
+
+what is Data augmentation
+It is the process of altering our data ,leading it to have more diversity and in turn allowing our model to learn more generalizable(hopefully) patterns. Altering the data might include adjusting the data. rotating the image ,flipping it, croppping it or something similar.
+
+Let's us vilsualize some augmented data...
+
+[ ]
+#import data augmented from the training directory
+print("Augmented training data")
+train_data_augmented=train_datagen_augmentation.flow_from_directory(train_dir,
+                                                              target_size=(224,224),
+                                                              batch_size=32,
+                                                              class_mode="binary",
+                                                              shuffle=False) #target only when we augment our data
+#create non-augmented train data batches
+print("non augmented training data: ")
+train_data=train_datagen.flow_from_directory(train_dir,
+                                           target_size=(224,224),
+                                           batch_size=32,
+                                           class_mode="binary",
+                                           shuffle=False)
+
+IMG_SIZE=(224,224)
+#non augmented test data batches
+print("non-augmented test-data: ")
+test_data=test_datagen.flow_from_directory(test_dir, 
+                                           target_size=IMG_SIZE, 
+                                           batch_size=32,
+                                           class_mode="binary"
+                                           )
+
+note:- data augementation is only performed on the training data.using the ImageDataGenerator build-in-data augmentation parameters ours images are left as they are in the directories but are modified as they are loaded into the model.
+
+Finally vizualize some augmented data
+
+[ ]
+#get the train sample data
+images,labels=train_data.next()
+augmented_images,augmented_label=train_data_augmented.next() #labels are not augmented
+
+[ ]
+#show the augmented image and  original data
+import random
+random_number=random.randint(0,32) #batch size ....
+print("show the image number: {random _number} ")
+plt.imshow(images[random_number])
+plt.title(f"Original image")
+plt.axis(False)
+plt.figure()
+plt.imshow(augmented_images[random_number])
+plt.title(f"Augmented image")
+plt.axis(False)
+create the model using data augmentation
+[ ]
+
+tf.random.set_seed(42)
+#build the model
+model_6=Sequential([
+    Conv2D(3,10,activation="relu",input_shape=(224,224,3)),
+    MaxPool2D(),
+    Conv2D(3,10,activation="relu"),
+    MaxPool2D(),
+    Conv2D(3,10,activation="relu"),
+    MaxPool2D(),
+    Flatten(),
+    Dense(1,activation="sigmoid")
+])
+
+#compile the model
+model_6.compile(loss="binary_crossentropy",
+                optimizer=Adam(),
+                metrics=["accuracy"])
+
+#fit the model
+history_6=model_6.fit(train_data_augmented,
+            epochs=5,
+            steps_per_epoch=len(train_data_augmented),
+            validation_data=test_data,
+            validation_steps=len(test_data))
+[ ]
+#check or model curve
+plot_loss_curve(history_6)
+let's us shuffle our augmentated data
+[ ]
+#let us make a shuffle augmented data
+train_data_augmented_shuffle=train_datagen_augmentation.flow_from_directory(train_dir,
+                                                                            target_size=(224,224),
+                                                                            batch_size=32,
+                                                                            class_mode="binary",
+                                                                            shuffle=True)
+[ ]
+#model_7 let us create
+model_7=Sequential([
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Flatten(),
+    Dense(1,activation="sigmoid")
+])
+
+#compile the model
+model_7.compile(loss="binary_crossentropy",
+              optimizer=Adam(),
+              metrics=["accuracy"])
+
+#fit the model
+history_7=model_7.fit(train_data_augmented_shuffle,
+            epochs=5,
+            steps_per_epoch=len(train_data_augmented_shuffle),
+            validation_data=test_data,
+            validation_steps=len(test_data))
+[ ]
+#plot the loss curve 
+plot_loss_curve(history_6)
+note :- when shuffling training data, the model gets all kinds of data during training, thus enabling it to learn features across the images(in our case pizza and steak at the same time instead of pizza then steak)
+
+repeat until satisfied
+since we have already beaten our basline. There is a few things to improve our model
+
+add more layers(e.g add more conv2D/ MaxPool2D layers)
+Increase the number of filters in each convolutional layers (10 to 32 or 60 maybe )
+Train for longer(more epochs)
+Find a Ideal learning rate
+Get more Data(get the model more opportunities to learn)
+use transfer Learning to levearge what another image model has learned and adjust it for own use case
+[ ]
+#model_7 let us create
+model_8=Sequential([
+    Conv2D(32,3,activation="relu",input_shape=(224,224,3)),
+    MaxPool2D(),
+    Conv2D(32,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(32,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(32,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(32,3,activation="relu"),
+    MaxPool2D(),
+    Flatten(),
+    Dense(1,activation="sigmoid")
+])
+
+#compile the model
+model_8.compile(loss="binary_crossentropy",
+              optimizer=Adam(),
+              metrics=["accuracy"])
+
+#fit the model
+history_8=model_8.fit(train_data_augmented_shuffle,
+            epochs=10,
+            steps_per_epoch=len(train_data_augmented_shuffle),
+            validation_data=test_data,
+            validation_steps=len(test_data))
+Making prediction with our own custom data
+[ ]
+#classes we're working with 
+print(class_names)
+[ ]
+#view our example image
+import matplotlib.image as mpimg 
+!wget https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/images/03-steak.jpeg
+steak=mpimg.imread("03-steak.jpeg")
+plt.imshow(steak)
+plt.axis(False)
+[ ]
+steak
+note:- whnen you train a neural network and you want to make a prediction with it on your own custom data (or new data) is preprocessed into the same format as the data your model was trained on.
+
+[ ]
+steak.shape
+create a function to import and image and resize it to able to used with our model
+[ ]
+def load_and_prep_image(filename,img_shape=224):
+  """
+  reads an image from a file name and turn it into a tensor and reshape to 
+  (img_shape,img_shape,color_channels)
+  """
+
+  #read the file name
+  img=tf.io.read_file(filename)
+  #decode the read file into a tensor 
+  img= tf.image.decode_image(img)
+  #resize the image
+  img=tf.image.resize(img,size=[img_shape,img_shape])
+  #rescale and get all value between O and 1
+  img=img/255.
+  return img
+[ ]
+#load and preprocess our custom image
+steak=load_and_prep_image(filename="03-steak.jpeg")
+steak
+[ ]
+pred=model_7.predict(tf.expand_dims(steak,axis=0))
+Looks like our custom image is put through our model, however it currently ouput the prediction probability, won;t it be nice to visualize the image as well as the model?
+
+[ ]
+#remind ourselves of the class name
+class_names
+[ ]
+#we can index the predicting class by rounding the prediction the probability and indexing on the class name
+pred_class=class_names[int(tf.round(pred))]
+pred_class
+[ ]
+def pred_and_plot(model,filename,class_names=class_names):
+  """
+  An image located at a filename , makes a prediction with model 
+  and plots the image with the predicted class as the title
+  """
+  #Import the target image and preprocess It 
+  img=load_and_prep_image(filename)
+
+  #make a prediction
+  pred=model.predict(tf.expand_dims(img,axis=0))
+
+  #get the predicted class
+  pred_class=class_names[int(tf.round(pred))]
+
+  #plot the image and the predicted class
+  plt.imshow(img)
+  plt.title(f"prediction: {pred_class}")
+  plt.axis(False)
+
+[ ]
+pred_and_plot(model_7,"03-steak.jpeg")
+let's us make our data work on pizza this time .
+[ ]
+!wget https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/images/03-pizza-dad.jpeg
+pizza=mpimg.imread("03-pizza-dad.jpeg")
+plt.imshow(pizza)
+plt.axis(False)
+[ ]
+pred_and_plot(model_7,"03-pizza-dad.jpeg")
+Multi-class Image classification problem
+we have just been through the binary classification problem (pizza vs steak) , now we are going to step things up a knoch with 10 classes of foods with multiclassification
+
+one with the data
+preprocess the data (get it ready for a model)
+create a model (start with baseline)
+Fit the model(overfit make sure it works)
+EValuate the model
+adjust different hyperparameters (to to beat baseline/try to beat overfititng)
+repeat until satisfied
+1. Import and become one with the data
+[ ]
+import zipfile
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_all_data.zip
+#unzip our data
+zip_ref=zipfile.ZipFile("10_food_classes_all_data.zip","r")
+zip_ref.extractall()
+zip_ref.close()
+--2023-01-04 20:01:26--  https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_all_data.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 74.125.203.128, 74.125.204.128, 64.233.189.128, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|74.125.203.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 519183241 (495M) [application/zip]
+Saving to: ‘10_food_classes_all_data.zip’
+
+10_food_classes_all 100%[===================>] 495.13M  27.2MB/s    in 19s     
+
+2023-01-04 20:01:46 (25.5 MB/s) - ‘10_food_classes_all_data.zip’ saved [519183241/519183241]
+
+[ ]
+import os
+
+#walk through 10 classes with our data 
+for dirpath,dirnames,filenames in os.walk("10_food_classes_all_data"):
+  print(f"There are {len(dirnames)} directories and {len(filenames)} images in '{dirpath}'.")
+  
+
+There are 2 directories and 0 images in '10_food_classes_all_data'.
+There are 10 directories and 0 images in '10_food_classes_all_data/test'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/ramen'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/sushi'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/hamburger'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/pizza'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/ice_cream'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/grilled_salmon'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/chicken_wings'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/steak'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/fried_rice'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/chicken_curry'.
+There are 10 directories and 0 images in '10_food_classes_all_data/train'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/ramen'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/sushi'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/hamburger'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/pizza'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/ice_cream'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/grilled_salmon'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/chicken_wings'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/steak'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/fried_rice'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/chicken_curry'.
+[ ]
+#set up the train and test directory
+train_dir="10_food_classes_all_data/train/"
+test_dir="10_food_classes_all_data/test/"
+[ ]
+#let's us get the class names 
+import pathlib
+import numpy as np
+data_dir=pathlib.Path(train_dir)
+class_names=np.array(sorted([item.name for item in data_dir.glob('*')]))
+print(class_names)
+['chicken_curry' 'chicken_wings' 'fried_rice' 'grilled_salmon' 'hamburger'
+ 'ice_cream' 'pizza' 'ramen' 'steak' 'sushi']
+[ ]
+#Visualize Visualize Visualize
+import random 
+img=view_random_image(target_dir=train_dir,target_class=random.choice(class_names))
+
+2.preprocess the data
+[ ]
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+#rescale
+train_datagen=ImageDataGenerator(rescale=1./255)
+test_datagen=ImageDataGenerator(rescale=1./255)
+
+#load data from the directories and turn into batches
+train_data=train_datagen.flow_from_directory(train_dir,
+                                             target_size=(224,224),
+                                             batch_size=32,
+                                             class_mode="categorical")
+test_data=test_datagen.flow_from_directory(test_dir,
+                                           target_size=(224,224),
+                                           batch_size=32,
+                                           class_mode="categorical")
+Found 7500 images belonging to 10 classes.
+Found 2500 images belonging to 10 classes.
+3. create a CNN model
+we will take the example from the CNN eplainer website to develop this model below
+
+[ ]
+#set the random seet
+tf.random.set_seed(42)
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D,MaxPool2D,Dense,Flatten
+
+#build the model
+model_9=Sequential([
+    Conv2D(10,3,activation="relu",input_shape=(224,224,3)),
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(10,3,activation="relu"),
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Flatten(),
+    Dense(10,activation="softmax") #changed to 10 output neurons.
+])
+
+#compile the model
+model_9.compile(loss="categorical_crossentropy",
+                optimizer=Adam(),
+                metrics=["accuracy"])
+
+
+fit our model
+[ ]
+#fit the model
+history_9=model_9.fit(train_data,
+            epochs=5,
+            steps_per_epoch=len(train_data),
+            validation_data=test_data,
+            validation_steps=len(test_data))
+5. Evaluate the model
+[ ]
+model_9.evaluate(test_data)
+[ ]
+#plot loss curve
+plot_loss_curve(history_9)
+what do the model tell us? well our model is overfitting the training set quite badly good on training data but bad with unseen data
+
+6. Adjust the hyperparameters(to reduce overfitting and beat the baseline)
+due to its performance it is clear that our model is learning something...
+
+However it is not generalize well with the unseen data
+
+so let's try and fix overfitting
+
+Get more data - more data more opportunities to learn
+augmentation - data augmentation are to manipulate the training data so that it can add more diversity too it. without altering original data
+use transfer learning- leverages the patterns learned by another model has learned similar to your data and allow to use pattern learn own your own datasets.
+simplify the model-if our current model is overfitting the data, it is too complicated of a model. simplify it reduced no of layers or reduce the no of hidden layers in layers
+[ ]
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D,MaxPool2D,Dense,Flatten
+#How about we simplify our model
+#let's try to remove 2 convolution layers
+model_10=Sequential([
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Flatten(),
+    Dense(10,activation="softmax")
+])
+
+#compile our model
+model_10.compile(loss="categorical_crossentropy",
+                 optimizer=tf.keras.optimizers.Adam(),
+                 metrics=["accuracy"])
+
+#fit our model with 2x Conv removed
+history_10=model_10.fit(train_data,
+         epochs=5,
+         steps_per_epoch=len(train_data),
+         validation_data=test_data,
+         validation_steps=len(test_data))
+Epoch 1/5
+235/235 [==============================] - 274s 1s/step - loss: 2.0841 - accuracy: 0.2665 - val_loss: 1.8986 - val_accuracy: 0.3320
+Epoch 2/5
+235/235 [==============================] - 269s 1s/step - loss: 1.7103 - accuracy: 0.4192 - val_loss: 1.8530 - val_accuracy: 0.3668
+Epoch 3/5
+235/235 [==============================] - 265s 1s/step - loss: 1.3698 - accuracy: 0.5521 - val_loss: 2.0037 - val_accuracy: 0.3156
+Epoch 4/5
+235/235 [==============================] - 263s 1s/step - loss: 0.9042 - accuracy: 0.7164 - val_loss: 2.2178 - val_accuracy: 0.3004
+Epoch 5/5
+235/235 [==============================] - 266s 1s/step - loss: 0.5037 - accuracy: 0.8593 - val_loss: 2.7090 - val_accuracy: 0.2988
+[ ]
+#plot loss_curve
+plot_loss_curve(history_10)
+
+As we can see removing two convo2d layers didn't helped us much to improve our model.
+
+so Lets us do augmentation now..
+
+[ ]
+#create a augmented data
+train_datagen_augmention=ImageDataGenerator(rescale=1./255,
+                                           rotation_range=0.2,
+                                           height_shift_range=0.2,
+                                           width_shift_range=0.2,
+                                           zoom_range=0.2,
+                                           horizontal_flip=True)
+
+train_data_augmented=train_datagen_augmention.flow_from_directory(train_dir,
+                                                                  target_size=(224,224),
+                                                                  batch_size=32,
+                                                                  class_mode="categorical")
+Found 7500 images belonging to 10 classes.
+[ ]
+#create another model but this time we will use augmented data to do so
+#set the random seet
+tf.random.set_seed(42)
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D,MaxPool2D,Dense,Flatten
+
+#build the model
+model_11=Sequential([
+    Conv2D(10,3,activation="relu",input_shape=(224,224,3)),
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Conv2D(10,3,activation="relu"),
+    Conv2D(10,3,activation="relu"),
+    MaxPool2D(),
+    Flatten(),
+    Dense(10,activation="softmax") #changed to 10 output neurons.
+])
+
+#compile the model
+model_11.compile(loss="categorical_crossentropy",
+                optimizer=Adam(),
+                metrics=["accuracy"])
+
+#fit the model
+history_11=model_11.fit(train_data_augmented,
+         epochs=5,
+         steps_per_epoch=len(train_data_augmented),
+         validation_data=test_data,
+         validation_steps=len(test_data))
+Epoch 1/5
+235/235 [==============================] - 652s 3s/step - loss: 2.1908 - accuracy: 0.1897 - val_loss: 2.0140 - val_accuracy: 0.2816
+Epoch 2/5
+235/235 [==============================] - 643s 3s/step - loss: 2.0878 - accuracy: 0.2508 - val_loss: 1.9470 - val_accuracy: 0.3184
+Epoch 3/5
+235/235 [==============================] - 646s 3s/step - loss: 2.0326 - accuracy: 0.2815 - val_loss: 1.8857 - val_accuracy: 0.3424
+Epoch 4/5
+235/235 [==============================] - 644s 3s/step - loss: 2.0052 - accuracy: 0.2995 - val_loss: 1.8321 - val_accuracy: 0.3732
+Epoch 5/5
+235/235 [==============================] - 638s 3s/step - loss: 1.9657 - accuracy: 0.3169 - val_loss: 1.8212 - val_accuracy: 0.3748
+Colab paid products - Cancel contracts here
