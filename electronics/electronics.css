@@ -1,0 +1,416 @@
+*{
+    padding:0 ;
+    margin: 0;
+}
+/* start of the home section  */
+#home{
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(rgb(0,0,0,0.5),#FF8C00),url(background.jpg) no-repeat center center/ cover;
+    position: relative;
+}
+.text{
+    height: 100vh;
+    /* margin-top: 5%; */
+    margin-left: 10%;
+    /* width: 100%; */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+}
+.text h1{
+    font-size: 2.7rem;
+    color: white;
+    width: fit-content;
+    display: block;
+    position: relative;
+    font-family: 'Big Shoulders Stencil Display', cursive;
+    color: transparent;
+    animation: text1 0.5s ease forwards;
+}
+.text h1:nth-child(1){
+    animation-delay: 1.5s;
+}
+.text h1:nth-child(2){
+    animation-delay: 2.5s;
+}
+.text h1:nth-child(3){
+    animation: text3 0.5s ease forwards;
+    animation-delay: 3.5s;
+}
+.text h1 span{
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #8E0E00;
+    width: 0;
+    height: 100%;
+    /* z-index: 1; */
+    animation: text2 1s ease ;
+}
+.text h1:nth-child(1) span{
+    animation-delay: 1s;
+}
+.text h1:nth-child(2) span{
+    animation-delay: 2s;
+}
+.text h1:nth-child(3) span{
+    animation-delay: 3s;
+}
+.logo{
+    position: absolute;
+    left: 12%;
+    top: 7%; 
+    width: 80px; 
+    z-index: 1;
+}
+.logo img{
+    width: 110px;
+}
+.text a{
+    text-decoration: none;
+    padding: 12px 13px;
+    margin: 12px 0;
+    font-size: 1.5rem;
+    border: 2px solid #1cefff;
+    background: transparent;
+    letter-spacing: 2px;
+    /* width: 20%; */
+    display: block;
+    text-align: center;
+    color: #1cefff;
+    transition: 0.5s;
+}
+.text a:hover{
+    color: white;
+    background: #1cefff;
+    letter-spacing: 6px;
+}
+/* end of the home scetion  */
+
+/* start of the navbar section  */
+#navbar{
+    position: fixed;
+    right: -250px;
+    top: 0;
+    width: 250px;
+    height: 100vh;
+    /* color: #67B26F; */
+    background-color: #ff6a00;
+    transition: 0.5s;
+    z-index: 2;
+}
+#navbar ul{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+#navbar ul li{
+    list-style: none;
+    margin: 12px 20px;
+}
+#navbar ul li a{
+    color: white;
+    font-size: 2rem;
+    text-decoration: none;
+    padding: 11px 9px;
+    font-family: 'Mate SC', serif;
+}
+#al{
+    position:fixed;
+    top: 3%;
+    right: 2%;
+    width: 50px;
+    height: 50px;
+    background: orange;
+    text-align: center;
+    background-position: center;
+    cursor: pointer;
+    z-index: 3;
+}
+#al img{
+    width: 30px;
+    margin-top: 10px;
+}
+/* end of the navbar section  */
+
+/* start of the service section  */
+#service{
+    padding: 70px 0 ;
+    width: 100%;
+}
+.title{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.title h1{
+    font-size: 4rem;
+}
+.title small{
+    font-size: 1.4rem;
+    color: #1cefff;;
+    position: relative;
+}
+.title small::after{
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -20px;
+    width: 30%;
+    text-align: center;
+    margin-left: 5%;
+    height: 100%;
+    background: linear-gradient(#ff6a00,white);
+    transform: rotate(10deg);
+    border-top-left-radius: 35px;
+    border-bottom-right-radius: 35px;
+    z-index: -1;
+}
+#service .service{
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+#service .box{
+    flex-basis: 45%;
+    text-align: center;
+    margin: 11px 12px;
+    cursor: pointer;
+    position: relative;
+}
+.box img{
+   width: 100%;
+   height: 100%;
+   border-radius: 12px;
+}
+.overlay{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 12px;
+    height: 100%;
+    background:linear-gradient(rgb(0,0,0,0.5),#1cefff);
+    opacity: 0;
+    transition: 0.5s;
+}
+.box:hover .overlay{
+    opacity: 1;
+}
+.box .text1{
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    text-align: center;
+    opacity: 0;
+    width: 50%;
+    transition: 0.5s;
+    font-size: 0.7rem;
+}
+.box:hover .text1{
+    bottom: 22%;
+    opacity: 1;
+}
+/* end of the service  */
+
+/* start of the why us  */
+#whyus{
+    padding: 70px 0px;
+    width: 100%;
+}
+.two{
+    width: 80%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0 auto;
+    align-items: center;
+}
+.two .left,.right{
+    flex-basis: 45%;
+    margin: 0 auto;
+}
+.left{
+    font-size: 0.9rem;
+}
+.right img{
+    width: 100%;
+    height: 100%;
+}
+.head{
+    /* flex-direction: flex; */
+    display: flex;
+    width: 100%;
+    height: 30px;
+    overflow: hidden;
+}
+.head h1{
+    font-size: 1.4rem;
+}
+.slider{
+    margin-left:8px ;
+    color: crimson;
+    animation: say 4.5s linear infinite;
+}
+/* end of the why us  */
+
+/* start of the testimonial section  */
+#testimonial{
+    padding: 70px 0px;
+    width: 100%;
+}
+.tbox{
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+.sbox{
+    flex-basis: 22%;
+    margin: 11px 18px;
+    padding: 12px 13px;
+    box-shadow:0px 0px 22px 0px #1cefff ;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.5s;
+}
+.sbox:hover{
+    box-shadow: 0px 0px 5px 0px #1cefff;
+    transform: translateY(-10px);
+}
+.desc{
+    display: flex;
+    align-items: center;
+    /* justify-content: center; */
+}
+.desc h1{
+    font-size: 1.2rem;
+}
+
+.sbox {
+    font-size: 0.8rem;
+}
+.desc img{
+    width: 30%;
+}
+.t p{
+    font-size: 0.6rem;
+    color: #1cefff;
+}
+/* end of the testimonial section  */
+
+/* start of the footer section  */
+#footer{
+    padding: 100px 0px 20px;
+    position: relative;
+    background: #ff6a00 ;
+    width: 100%;
+}
+.foo{
+    width: 90%;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    display: flex;
+    justify-content: center;
+}
+.left-side,.right-side{
+    flex-basis: 49%;
+    line-height: 34px;
+    margin-bottom: 50px;
+    letter-spacing: 1px;
+}
+.right-side{
+    text-align: right;
+}
+
+/* end of the footer section  */
+
+/* start of the animation section  */
+@keyframes say {
+    0%{
+        margin-top: -100px;
+    }
+    50%{
+        margin-top:0px ;
+    }
+    100%{
+        margin-top: 100px;
+    }
+}
+@keyframes text2{
+    50%{
+        width: 100%;
+        left: 0;
+    }
+    100%{
+        width: 0;
+        left: 100%;
+    }
+}
+@keyframes text1 {
+    100%{
+        color: white;
+    }
+}
+@keyframes text3 {
+    100%{
+        color: #8E0E00;
+    }
+    
+}
+/* end of the animation scetion  */
+
+@media only screen and (max-width: 770px){
+    /* start of the title scetion  */
+    .title h1{
+        font-size: 2.2rem;
+    }
+    .text h1{
+        font-size: 2.7rem;
+    }
+    .text a{
+        font-size: 1.7rem;
+    }
+    /* end of the home section  */
+
+    /* start of the service section  */
+    #service .box{
+        flex-basis: 100%;
+    }
+    .text1 h1{
+        font-size: 1rem;
+    }
+    .text1 p{
+        font-size: 0.6rem;
+    }
+    /* end of the service scetion  */
+
+    /* start of the  why section  */
+    .head .left,.right{
+        flex-basis: 100%;
+    }
+    #whyus .left {
+        flex-basis: 100%;
+    }
+    /* end of the why scetion  */
+
+    /* start of the testimonial section  */
+    .sbox{
+        flex-basis: 100%;
+    }
+    /* end of the testimonial section  */
+
+    /* start of the footer section  */
+    .left-side,.right-side{
+        flex-basis: 100%;
+    }
+    /* end of the footer section  */
+}
