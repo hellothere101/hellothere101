@@ -1,0 +1,3250 @@
+Loading...
+02_neural_network_classification_with_tensorflow.ipynb
+02_neural_network_classification_with_tensorflow.ipynbC_
+introduction to neural network classification with Tensorflow
+In this notebook we will learn how to learn neural network for the classification problems.
+
+A classifiaction problem is where you try classify something one thing or another .
+
+few types of classification
+
+Binary classification
+multiclass classification
+multilabel classification
+create data to view and fit
+[ ]
+from sklearn.datasets import make_circles
+import tensorflow as tf
+#make 1000 example
+n_samples=1000
+#create 
+X,Y=make_circles(n_samples,noise=0.03,random_state=42)
+
+[ ]
+#let us check our features
+X
+array([[ 0.75424625,  0.23148074],
+       [-0.75615888,  0.15325888],
+       [-0.81539193,  0.17328203],
+       ...,
+       [-0.13690036, -0.81001183],
+       [ 0.67036156, -0.76750154],
+       [ 0.28105665,  0.96382443]])
+[ ]
+#let us check our labels
+Y[:10]
+array([1, 1, 1, 1, 0, 1, 1, 1, 1, 0])
+our data is a little hard to understand now let us vizualize it!
+[ ]
+import pandas as pd
+circles=pd.DataFrame({"X1": X[:,0],"X2":X[:,1],"label":Y})
+circles
+
+[ ]
+#vizualize a plot
+import matplotlib.pyplot as plt
+plt.scatter(X[:,0],X[:,1],c=Y,cmap=plt.cm.RdYlBu)
+
+Input and output shapes of our data
+[ ]
+#check the shape of our features and labels
+X.shape,Y.shape
+((1000, 2), (1000,))
+[ ]
+#how many samples we are working with
+len(X),len(Y)
+(1000, 1000)
+[ ]
+#view the first example of fearures and labels
+X[0],Y[0]
+(array([0.75424625, 0.23148074]), 1)
+steps in modelling
+steps in tensoflow modelling are:
+
+create or import the model
+compile the model
+fit the model
+Evaluate the model
+tweak
+Evaluate......
+[ ]
+#set the random
+tf.random.set_seed(42)
+
+#1.create the model
+model_1=tf.keras.Sequential([
+    tf.keras.layers.Dense(1)
+])
+
+#2. compile the model
+model_1.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.SGD(),
+                metrics=["accuracy"])
+
+#3. fit the model
+model_1.fit(X,Y,epochs=5)
+Epoch 1/5
+32/32 [==============================] - 1s 2ms/step - loss: 2.8544 - accuracy: 0.4600
+Epoch 2/5
+32/32 [==============================] - 0s 2ms/step - loss: 0.7131 - accuracy: 0.5430
+Epoch 3/5
+32/32 [==============================] - 0s 2ms/step - loss: 0.6973 - accuracy: 0.5090
+Epoch 4/5
+32/32 [==============================] - 0s 2ms/step - loss: 0.6950 - accuracy: 0.5010
+Epoch 5/5
+32/32 [==============================] - 0s 1ms/step - loss: 0.6942 - accuracy: 0.4820
+<keras.callbacks.History at 0x7fe9c844bac0>
+[ ]
+#let us improve our model for longer by running it for longer
+model_1.fit(X,Y,epochs=200,verbose=0)
+model_1.evaluate(X,Y)
+32/32 [==============================] - 1s 7ms/step - loss: 0.6935 - accuracy: 0.5000
+[0.6934831142425537, 0.5]
+since we are working on a binary classification problem right and our model is getting around 50 percent accuracy.. it is performing as if it's guessing. let us step us things and add an extra layers.
+
+[ ]
+#let our random seed
+tf.random.set_seed(42)
+
+#1. create our model
+model_2=tf.keras.Sequential([
+    tf.keras.layers.Dense(1),
+    tf.keras.layers.Dense(1)
+])
+
+#2. compile our model
+model_2.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.SGD(),
+                metrics=["accuracy"])
+
+#fit our model
+model_2.fit(X,Y,epochs=100,verbose=0)
+<keras.callbacks.History at 0x7fe9cbb073a0>
+[ ]
+#let us evaluate our model
+model_2.evaluate(X,Y)
+32/32 [==============================] - 0s 3ms/step - loss: 0.6933 - accuracy: 0.5000
+[0.6933314204216003, 0.5]
+Improve our model
+let us look at the bag of tricks to improve our model.
+
+create a model- add more layers or increase the no of hidden units.
+compile a model - here we might want to choose a new optimization function. such as adam expect for SGD
+fitting a model - perhaps we might train a model for more epochs or longer
+[ ]
+#set the random seed
+tf.random.set_seed(42)
+
+#1.create a model
+model_3=tf.keras.Sequential([
+    tf.keras.layers.Dense(100), # add 100 dense neurons
+    tf.keras.layers.Dense(10), #add 10 dense neurons
+    tf.keras.layers.Dense(1)
+])
+
+#2. compile the model
+model_3.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#3. fit our model
+model_3.fit(X,Y,epochs=100,verbose=0)
+<keras.callbacks.History at 0x7fe9cfe51fa0>
+to vizualize our model let us do our model_prediction, let's us create a function plot-decision-boundary This model will:
+Take in a trained model , features(x) and labels(Y)
+create a mesh-grid of different X value
+make prediction across the mesh-grid
+plot the predictions as well as line between zones(where unique class falls).
+[ ]
+import numpy as np
+def plot_decision_boundary(model,X,Y):
+  """
+  plot the decision boundary created by a model predicting on X.
+  """
+  #define the axis boundary of the plot and create a meshgrid
+  X_min,X_max=X[:,0].min() - 0.1 ,X[:,0].max() + 0.1
+  Y_min,Y_max=X[:,1].min()-0.1,X[:,1].min()+0.1
+  XX,YY=np.meshgrid(np.linspace(X_min,X_max,100),
+                    np.linspace(X_min,X_max,100))
+  #create a X value
+  X_in= np.c_[XX.ravel(),YY.ravel()]
+
+  #make prediction
+  Y_pred=model.predict(X_in)
+
+  #check for multi-class
+  if len(Y_pred[0]) >1:
+    print("doing multiclass prediction")
+    #we need to reshape our prediction for plotting 
+    Y_pred=np.argmax(Y_pred,axis=1).reshape(XX.shape())
+  else:
+    print("It is binary classification")
+    Y_pred=np.round(Y_pred).reshape(XX.shape)
+
+  #plot our decision boundary
+  plt.contourf(XX,YY,Y_pred,cmap=plt.cm.RdYlBu,alpha=0.7)
+  plt.scatter(X[:,0],X[:,1],c=Y,cmap=plt.cm.RdYlBu)
+  plt.xlim(XX.min(),XX.max())
+  plt.ylim(YY.min(),YY.max())
+[ ]
+#let us do our plot prediction
+plot_decision_boundary(model=model_3,X=X,Y=Y)
+
+[ ]
+#let's see if our model can work for a regression problem
+tf.random.set_seed(42)
+
+#regression data
+X_regression=tf.range(0,1000,5)
+Y_regression=tf.range(100,1100,5)
+
+#let us split our data in training and test sets
+X_reg_train=X_regression[:150]
+X_reg_test=X_regression[150:]
+Y_reg_train=Y_regression[:150]
+Y_reg_test=Y_regression[150:]
+oh wait we created our model for classification model . but right now we are trying to work on a regression problem,let's change the model to suit our needs.
+
+[ ]
+#set random seed
+tf.random.set_seed(42)
+
+#1. create a model
+model_3=tf.keras.Sequential([
+    tf.keras.layers.Dense(100),
+    tf.keras.layers.Dense(10),
+    tf.keras.layers.Dense(1)
+])
+
+#2. compile our model
+model_3.compile(loss=tf.keras.losses.mae,
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["mae"])
+
+#3. fit our model
+model_3.fit(tf.expand_dims(X_reg_test,axis=-1),Y_reg_test,epochs=100)
+Epoch 1/100
+2/2 [==============================] - 1s 7ms/step - loss: 519.1699 - mae: 519.1699
+Epoch 2/100
+2/2 [==============================] - 0s 6ms/step - loss: 420.6536 - mae: 420.6536
+Epoch 3/100
+2/2 [==============================] - 0s 9ms/step - loss: 320.6202 - mae: 320.6202
+Epoch 4/100
+2/2 [==============================] - 0s 7ms/step - loss: 219.9740 - mae: 219.9740
+Epoch 5/100
+2/2 [==============================] - 0s 6ms/step - loss: 118.1832 - mae: 118.1832
+Epoch 6/100
+2/2 [==============================] - 0s 8ms/step - loss: 28.7763 - mae: 28.7763
+Epoch 7/100
+2/2 [==============================] - 0s 8ms/step - loss: 65.1511 - mae: 65.1511
+Epoch 8/100
+2/2 [==============================] - 0s 10ms/step - loss: 96.9746 - mae: 96.9746
+Epoch 9/100
+2/2 [==============================] - 0s 6ms/step - loss: 95.4898 - mae: 95.4898
+Epoch 10/100
+2/2 [==============================] - 0s 5ms/step - loss: 70.1636 - mae: 70.1636
+Epoch 11/100
+2/2 [==============================] - 0s 6ms/step - loss: 27.8824 - mae: 27.8824
+Epoch 12/100
+2/2 [==============================] - 0s 8ms/step - loss: 22.2990 - mae: 22.2990
+Epoch 13/100
+2/2 [==============================] - 0s 5ms/step - loss: 46.7956 - mae: 46.7956
+Epoch 14/100
+2/2 [==============================] - 0s 6ms/step - loss: 45.8485 - mae: 45.8485
+Epoch 15/100
+2/2 [==============================] - 0s 7ms/step - loss: 24.9556 - mae: 24.9556
+Epoch 16/100
+2/2 [==============================] - 0s 7ms/step - loss: 12.9221 - mae: 12.9221
+Epoch 17/100
+2/2 [==============================] - 0s 9ms/step - loss: 30.1334 - mae: 30.1334
+Epoch 18/100
+2/2 [==============================] - 0s 7ms/step - loss: 26.3192 - mae: 26.3192
+Epoch 19/100
+2/2 [==============================] - 0s 6ms/step - loss: 10.3249 - mae: 10.3249
+Epoch 20/100
+2/2 [==============================] - 0s 6ms/step - loss: 16.6580 - mae: 16.6580
+Epoch 21/100
+2/2 [==============================] - 0s 7ms/step - loss: 14.7489 - mae: 14.7489
+Epoch 22/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.5579 - mae: 7.5579
+Epoch 23/100
+2/2 [==============================] - 0s 5ms/step - loss: 13.4122 - mae: 13.4122
+Epoch 24/100
+2/2 [==============================] - 0s 5ms/step - loss: 9.2054 - mae: 9.2054
+Epoch 25/100
+2/2 [==============================] - 0s 7ms/step - loss: 9.4065 - mae: 9.4065
+Epoch 26/100
+2/2 [==============================] - 0s 6ms/step - loss: 10.1689 - mae: 10.1689
+Epoch 27/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.8820 - mae: 7.8820
+Epoch 28/100
+2/2 [==============================] - 0s 5ms/step - loss: 8.9171 - mae: 8.9171
+Epoch 29/100
+2/2 [==============================] - 0s 5ms/step - loss: 7.3621 - mae: 7.3621
+Epoch 30/100
+2/2 [==============================] - 0s 6ms/step - loss: 8.4433 - mae: 8.4433
+Epoch 31/100
+2/2 [==============================] - 0s 5ms/step - loss: 7.0020 - mae: 7.0020
+Epoch 32/100
+2/2 [==============================] - 0s 6ms/step - loss: 8.1343 - mae: 8.1343
+Epoch 33/100
+2/2 [==============================] - 0s 5ms/step - loss: 8.2212 - mae: 8.2212
+Epoch 34/100
+2/2 [==============================] - 0s 4ms/step - loss: 7.9393 - mae: 7.9393
+Epoch 35/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.6304 - mae: 7.6304
+Epoch 36/100
+2/2 [==============================] - 0s 5ms/step - loss: 7.2772 - mae: 7.2772
+Epoch 37/100
+2/2 [==============================] - 0s 5ms/step - loss: 7.9017 - mae: 7.9017
+Epoch 38/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.0182 - mae: 7.0182
+Epoch 39/100
+2/2 [==============================] - 0s 6ms/step - loss: 8.0802 - mae: 8.0802
+Epoch 40/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.4368 - mae: 7.4368
+Epoch 41/100
+2/2 [==============================] - 0s 5ms/step - loss: 8.4532 - mae: 8.4532
+Epoch 42/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.6182 - mae: 7.6182
+Epoch 43/100
+2/2 [==============================] - 0s 6ms/step - loss: 8.0239 - mae: 8.0239
+Epoch 44/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.4460 - mae: 7.4460
+Epoch 45/100
+2/2 [==============================] - 0s 5ms/step - loss: 7.3123 - mae: 7.3123
+Epoch 46/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.3087 - mae: 7.3087
+Epoch 47/100
+2/2 [==============================] - 0s 12ms/step - loss: 7.1434 - mae: 7.1434
+Epoch 48/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.2897 - mae: 7.2897
+Epoch 49/100
+2/2 [==============================] - 0s 16ms/step - loss: 7.1662 - mae: 7.1662
+Epoch 50/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.3314 - mae: 7.3314
+Epoch 51/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.1143 - mae: 7.1143
+Epoch 52/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.4627 - mae: 7.4627
+Epoch 53/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.0751 - mae: 7.0751
+Epoch 54/100
+2/2 [==============================] - 0s 12ms/step - loss: 7.4921 - mae: 7.4921
+Epoch 55/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.1649 - mae: 7.1649
+Epoch 56/100
+2/2 [==============================] - 0s 10ms/step - loss: 7.6187 - mae: 7.6187
+Epoch 57/100
+2/2 [==============================] - 0s 7ms/step - loss: 8.1128 - mae: 8.1128
+Epoch 58/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.2182 - mae: 7.2182
+Epoch 59/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.1069 - mae: 7.1069
+Epoch 60/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.5170 - mae: 7.5170
+Epoch 61/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.1349 - mae: 7.1349
+Epoch 62/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.2990 - mae: 7.2990
+Epoch 63/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.2098 - mae: 7.2098
+Epoch 64/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.1363 - mae: 7.1363
+Epoch 65/100
+2/2 [==============================] - 0s 11ms/step - loss: 7.3844 - mae: 7.3844
+Epoch 66/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.0717 - mae: 7.0717
+Epoch 67/100
+2/2 [==============================] - 0s 12ms/step - loss: 7.5919 - mae: 7.5919
+Epoch 68/100
+2/2 [==============================] - 0s 7ms/step - loss: 6.9101 - mae: 6.9101
+Epoch 69/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.9173 - mae: 7.9173
+Epoch 70/100
+2/2 [==============================] - 0s 11ms/step - loss: 7.1049 - mae: 7.1049
+Epoch 71/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.4633 - mae: 7.4633
+Epoch 72/100
+2/2 [==============================] - 0s 11ms/step - loss: 7.6019 - mae: 7.6019
+Epoch 73/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.1434 - mae: 7.1434
+Epoch 74/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.6306 - mae: 7.6306
+Epoch 75/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.1264 - mae: 7.1264
+Epoch 76/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.4170 - mae: 7.4170
+Epoch 77/100
+2/2 [==============================] - 0s 11ms/step - loss: 7.1783 - mae: 7.1783
+Epoch 78/100
+2/2 [==============================] - 0s 10ms/step - loss: 7.6419 - mae: 7.6419
+Epoch 79/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.4037 - mae: 7.4037
+Epoch 80/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.4640 - mae: 7.4640
+Epoch 81/100
+2/2 [==============================] - 0s 11ms/step - loss: 7.9183 - mae: 7.9183
+Epoch 82/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.1503 - mae: 7.1503
+Epoch 83/100
+2/2 [==============================] - 0s 5ms/step - loss: 7.1783 - mae: 7.1783
+Epoch 84/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.4503 - mae: 7.4503
+Epoch 85/100
+2/2 [==============================] - 0s 16ms/step - loss: 7.1586 - mae: 7.1586
+Epoch 86/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.3508 - mae: 7.3508
+Epoch 87/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.1576 - mae: 7.1576
+Epoch 88/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.1262 - mae: 7.1262
+Epoch 89/100
+2/2 [==============================] - 0s 65ms/step - loss: 7.3628 - mae: 7.3628
+Epoch 90/100
+2/2 [==============================] - 0s 11ms/step - loss: 7.1546 - mae: 7.1546
+Epoch 91/100
+2/2 [==============================] - 0s 8ms/step - loss: 7.2259 - mae: 7.2259
+Epoch 92/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.0954 - mae: 7.0954
+Epoch 93/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.1898 - mae: 7.1898
+Epoch 94/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.0890 - mae: 7.0890
+Epoch 95/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.2299 - mae: 7.2299
+Epoch 96/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.1194 - mae: 7.1194
+Epoch 97/100
+2/2 [==============================] - 0s 7ms/step - loss: 7.1486 - mae: 7.1486
+Epoch 98/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.3748 - mae: 7.3748
+Epoch 99/100
+2/2 [==============================] - 0s 11ms/step - loss: 7.1464 - mae: 7.1464
+Epoch 100/100
+2/2 [==============================] - 0s 6ms/step - loss: 7.1010 - mae: 7.1010
+<keras.callbacks.History at 0x7fe9d0231eb0>
+[ ]
+#make prediction with our trained data
+Y_reg_pred=model_3.predict(X_reg_test)
+#plot a grap 
+plt.figure(figsize=(10,7))
+plt.scatter(X_reg_train,Y_reg_train,c="b",label="training data")
+plt.scatter(X_reg_test,Y_reg_test,c="g",label="testing data")
+plt.scatter(X_reg_test,Y_reg_pred,c="r",label="testing data")
+plt.legend()
+
+[ ]
+#evaluate the model
+#model_3.evaluate(X,Y)
+The missing piece non-linearity
+[ ]
+#set random seed
+tf.random.set_seed(42)
+
+# 1.create the model
+model_4=tf.keras.Sequential([
+    tf.keras.layers.Dense(1,activation=tf.keras.activations.linear)
+])
+
+# 2.compile the model
+model_4.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#fit our model
+model_4.fit(X,Y,epochs=100)
+Epoch 1/100
+32/32 [==============================] - 1s 2ms/step - loss: 4.2979 - accuracy: 0.4670
+Epoch 2/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.2317 - accuracy: 0.4400
+Epoch 3/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.1610 - accuracy: 0.4310
+Epoch 4/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.1183 - accuracy: 0.4270
+Epoch 5/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.0784 - accuracy: 0.4240
+Epoch 6/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.9620 - accuracy: 0.4170
+Epoch 7/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8984 - accuracy: 0.4110
+Epoch 8/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8595 - accuracy: 0.4110
+Epoch 9/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8580 - accuracy: 0.4110
+Epoch 10/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8575 - accuracy: 0.4110
+Epoch 11/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8570 - accuracy: 0.4110
+Epoch 12/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8566 - accuracy: 0.4110
+Epoch 13/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8563 - accuracy: 0.4110
+Epoch 14/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8559 - accuracy: 0.4120
+Epoch 15/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8556 - accuracy: 0.4120
+Epoch 16/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8553 - accuracy: 0.4120
+Epoch 17/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8313 - accuracy: 0.4100
+Epoch 18/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8039 - accuracy: 0.4120
+Epoch 19/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7935 - accuracy: 0.4120
+Epoch 20/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7913 - accuracy: 0.4120
+Epoch 21/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7838 - accuracy: 0.4120
+Epoch 22/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7780 - accuracy: 0.4120
+Epoch 23/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7771 - accuracy: 0.4120
+Epoch 24/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7763 - accuracy: 0.4100
+Epoch 25/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7757 - accuracy: 0.4100
+Epoch 26/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7751 - accuracy: 0.4100
+Epoch 27/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7745 - accuracy: 0.4100
+Epoch 28/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7740 - accuracy: 0.4100
+Epoch 29/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7734 - accuracy: 0.4100
+Epoch 30/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7730 - accuracy: 0.4100
+Epoch 31/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7725 - accuracy: 0.4100
+Epoch 32/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7720 - accuracy: 0.4100
+Epoch 33/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7715 - accuracy: 0.4100
+Epoch 34/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7711 - accuracy: 0.4090
+Epoch 35/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7706 - accuracy: 0.4090
+Epoch 36/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7702 - accuracy: 0.4090
+Epoch 37/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7698 - accuracy: 0.4090
+Epoch 38/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7629 - accuracy: 0.4090
+Epoch 39/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7596 - accuracy: 0.4100
+Epoch 40/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7588 - accuracy: 0.4100
+Epoch 41/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7582 - accuracy: 0.4100
+Epoch 42/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7576 - accuracy: 0.4100
+Epoch 43/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7571 - accuracy: 0.4100
+Epoch 44/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7565 - accuracy: 0.4100
+Epoch 45/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7561 - accuracy: 0.4100
+Epoch 46/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7556 - accuracy: 0.4100
+Epoch 47/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7551 - accuracy: 0.4110
+Epoch 48/100
+32/32 [==============================] - 0s 3ms/step - loss: 3.7547 - accuracy: 0.4110
+Epoch 49/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7542 - accuracy: 0.4110
+Epoch 50/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7538 - accuracy: 0.4110
+Epoch 51/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7473 - accuracy: 0.4110
+Epoch 52/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7291 - accuracy: 0.4120
+Epoch 53/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7282 - accuracy: 0.4120
+Epoch 54/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7277 - accuracy: 0.4130
+Epoch 55/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7273 - accuracy: 0.4130
+Epoch 56/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7268 - accuracy: 0.4130
+Epoch 57/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7264 - accuracy: 0.4130
+Epoch 58/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7259 - accuracy: 0.4130
+Epoch 59/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7255 - accuracy: 0.4130
+Epoch 60/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7250 - accuracy: 0.4130
+Epoch 61/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7246 - accuracy: 0.4130
+Epoch 62/100
+32/32 [==============================] - 0s 3ms/step - loss: 3.7242 - accuracy: 0.4130
+Epoch 63/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7238 - accuracy: 0.4130
+Epoch 64/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7234 - accuracy: 0.4130
+Epoch 65/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7230 - accuracy: 0.4140
+Epoch 66/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7226 - accuracy: 0.4140
+Epoch 67/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7222 - accuracy: 0.4140
+Epoch 68/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7218 - accuracy: 0.4160
+Epoch 69/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7215 - accuracy: 0.4160
+Epoch 70/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7211 - accuracy: 0.4160
+Epoch 71/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7207 - accuracy: 0.4160
+Epoch 72/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7203 - accuracy: 0.4160
+Epoch 73/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7200 - accuracy: 0.4180
+Epoch 74/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7196 - accuracy: 0.4180
+Epoch 75/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7192 - accuracy: 0.4180
+Epoch 76/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7189 - accuracy: 0.4180
+Epoch 77/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7185 - accuracy: 0.4180
+Epoch 78/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7181 - accuracy: 0.4180
+Epoch 79/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7177 - accuracy: 0.4180
+Epoch 80/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7173 - accuracy: 0.4180
+Epoch 81/100
+32/32 [==============================] - 0s 3ms/step - loss: 3.7169 - accuracy: 0.4180
+Epoch 82/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7166 - accuracy: 0.4180
+Epoch 83/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7162 - accuracy: 0.4180
+Epoch 84/100
+32/32 [==============================] - 0s 1ms/step - loss: 3.7158 - accuracy: 0.4180
+Epoch 85/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7155 - accuracy: 0.4180
+Epoch 86/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7151 - accuracy: 0.4180
+Epoch 87/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7148 - accuracy: 0.4180
+Epoch 88/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6964 - accuracy: 0.4180
+Epoch 89/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6876 - accuracy: 0.4190
+Epoch 90/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6872 - accuracy: 0.4200
+Epoch 91/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6868 - accuracy: 0.4200
+Epoch 92/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6864 - accuracy: 0.4200
+Epoch 93/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6860 - accuracy: 0.4210
+Epoch 94/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6856 - accuracy: 0.4210
+Epoch 95/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6852 - accuracy: 0.4200
+Epoch 96/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6848 - accuracy: 0.4200
+Epoch 97/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6844 - accuracy: 0.4220
+Epoch 98/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6841 - accuracy: 0.4220
+Epoch 99/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6837 - accuracy: 0.4230
+Epoch 100/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6833 - accuracy: 0.4220
+<keras.callbacks.History at 0x7fe9d1d5d730>
+[ ]
+plt.scatter(X[:,0],X[:,1],c=Y,cmap=plt.cm.RdYlBu)
+
+[ ]
+#let us check the prediction of our model
+plot_decision_boundary(model=model_4,X=X,Y=Y)
+
+Let us try to build a model using a non-linear activation function.
+
+[ ]
+#let us set a random seed 
+tf.random.set_seed(42)
+
+#1. build the model
+model_5=tf.keras.Sequential([
+    tf.keras.layers.Dense(1,activation=tf.keras.activations.relu)
+])
+
+#2. compile the model
+model_5.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(lr=0.001),
+                metrics=["accuracy"])
+
+#3.fit the model
+history=model_5.fit(X,Y,epochs=100)
+Epoch 1/100
+/usr/local/lib/python3.8/dist-packages/keras/optimizers/optimizer_v2/adam.py:110: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  super(Adam, self).__init__(name, **kwargs)
+32/32 [==============================] - 1s 2ms/step - loss: 4.2979 - accuracy: 0.4670
+Epoch 2/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.2317 - accuracy: 0.4400
+Epoch 3/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.1610 - accuracy: 0.4310
+Epoch 4/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.1183 - accuracy: 0.4270
+Epoch 5/100
+32/32 [==============================] - 0s 2ms/step - loss: 4.0784 - accuracy: 0.4240
+Epoch 6/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.9620 - accuracy: 0.4170
+Epoch 7/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8984 - accuracy: 0.4110
+Epoch 8/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8595 - accuracy: 0.4110
+Epoch 9/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8580 - accuracy: 0.4110
+Epoch 10/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8575 - accuracy: 0.4110
+Epoch 11/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8570 - accuracy: 0.4110
+Epoch 12/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8566 - accuracy: 0.4110
+Epoch 13/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8563 - accuracy: 0.4110
+Epoch 14/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8559 - accuracy: 0.4120
+Epoch 15/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8556 - accuracy: 0.4120
+Epoch 16/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8553 - accuracy: 0.4120
+Epoch 17/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8313 - accuracy: 0.4100
+Epoch 18/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.8039 - accuracy: 0.4120
+Epoch 19/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7935 - accuracy: 0.4120
+Epoch 20/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7913 - accuracy: 0.4120
+Epoch 21/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7838 - accuracy: 0.4120
+Epoch 22/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7780 - accuracy: 0.4120
+Epoch 23/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7771 - accuracy: 0.4120
+Epoch 24/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7763 - accuracy: 0.4100
+Epoch 25/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7757 - accuracy: 0.4100
+Epoch 26/100
+32/32 [==============================] - 0s 3ms/step - loss: 3.7751 - accuracy: 0.4100
+Epoch 27/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7745 - accuracy: 0.4100
+Epoch 28/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7740 - accuracy: 0.4100
+Epoch 29/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7734 - accuracy: 0.4100
+Epoch 30/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7730 - accuracy: 0.4100
+Epoch 31/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7725 - accuracy: 0.4100
+Epoch 32/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7720 - accuracy: 0.4100
+Epoch 33/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7715 - accuracy: 0.4100
+Epoch 34/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7711 - accuracy: 0.4090
+Epoch 35/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7706 - accuracy: 0.4090
+Epoch 36/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7702 - accuracy: 0.4090
+Epoch 37/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7698 - accuracy: 0.4090
+Epoch 38/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7629 - accuracy: 0.4090
+Epoch 39/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7596 - accuracy: 0.4100
+Epoch 40/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7588 - accuracy: 0.4100
+Epoch 41/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7582 - accuracy: 0.4100
+Epoch 42/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7576 - accuracy: 0.4100
+Epoch 43/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7571 - accuracy: 0.4100
+Epoch 44/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7565 - accuracy: 0.4100
+Epoch 45/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7561 - accuracy: 0.4100
+Epoch 46/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7556 - accuracy: 0.4100
+Epoch 47/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7551 - accuracy: 0.4110
+Epoch 48/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7547 - accuracy: 0.4110
+Epoch 49/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7542 - accuracy: 0.4110
+Epoch 50/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7538 - accuracy: 0.4110
+Epoch 51/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7473 - accuracy: 0.4110
+Epoch 52/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7291 - accuracy: 0.4120
+Epoch 53/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7282 - accuracy: 0.4120
+Epoch 54/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7277 - accuracy: 0.4130
+Epoch 55/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7273 - accuracy: 0.4130
+Epoch 56/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7268 - accuracy: 0.4130
+Epoch 57/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7264 - accuracy: 0.4130
+Epoch 58/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7259 - accuracy: 0.4130
+Epoch 59/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7255 - accuracy: 0.4130
+Epoch 60/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7250 - accuracy: 0.4130
+Epoch 61/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7246 - accuracy: 0.4130
+Epoch 62/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7242 - accuracy: 0.4130
+Epoch 63/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7238 - accuracy: 0.4130
+Epoch 64/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7234 - accuracy: 0.4130
+Epoch 65/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7230 - accuracy: 0.4140
+Epoch 66/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7226 - accuracy: 0.4140
+Epoch 67/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7222 - accuracy: 0.4140
+Epoch 68/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7218 - accuracy: 0.4160
+Epoch 69/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7215 - accuracy: 0.4160
+Epoch 70/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7211 - accuracy: 0.4160
+Epoch 71/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7207 - accuracy: 0.4160
+Epoch 72/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7203 - accuracy: 0.4160
+Epoch 73/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7200 - accuracy: 0.4180
+Epoch 74/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7196 - accuracy: 0.4180
+Epoch 75/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7192 - accuracy: 0.4180
+Epoch 76/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7189 - accuracy: 0.4180
+Epoch 77/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7185 - accuracy: 0.4180
+Epoch 78/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7181 - accuracy: 0.4180
+Epoch 79/100
+32/32 [==============================] - 0s 1ms/step - loss: 3.7177 - accuracy: 0.4180
+Epoch 80/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7173 - accuracy: 0.4180
+Epoch 81/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7169 - accuracy: 0.4180
+Epoch 82/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7166 - accuracy: 0.4180
+Epoch 83/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7162 - accuracy: 0.4180
+Epoch 84/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7158 - accuracy: 0.4180
+Epoch 85/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7155 - accuracy: 0.4180
+Epoch 86/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7151 - accuracy: 0.4180
+Epoch 87/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.7148 - accuracy: 0.4180
+Epoch 88/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6964 - accuracy: 0.4180
+Epoch 89/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6876 - accuracy: 0.4190
+Epoch 90/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6872 - accuracy: 0.4200
+Epoch 91/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6868 - accuracy: 0.4200
+Epoch 92/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6864 - accuracy: 0.4200
+Epoch 93/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6860 - accuracy: 0.4210
+Epoch 94/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6856 - accuracy: 0.4210
+Epoch 95/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6852 - accuracy: 0.4200
+Epoch 96/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6848 - accuracy: 0.4200
+Epoch 97/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6844 - accuracy: 0.4220
+Epoch 98/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6841 - accuracy: 0.4220
+Epoch 99/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6837 - accuracy: 0.4230
+Epoch 100/100
+32/32 [==============================] - 0s 2ms/step - loss: 3.6833 - accuracy: 0.4220
+[ ]
+#set the random seed
+tf.random.set_seed(42)
+
+#1. create the model
+model_6=tf.keras.Sequential([
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(1)
+])
+
+#2. compile the model
+model_6.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(lr=0.001),
+                metrics=["accuracy"])
+
+#fit the model
+history=model_6.fit(X,Y,epochs=250)
+Epoch 1/250
+32/32 [==============================] - 1s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 2/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 3/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 4/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 5/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 6/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 7/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 8/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 9/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 10/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 11/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 12/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 13/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 14/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 15/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 16/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 17/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 18/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 19/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 20/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 21/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 22/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 23/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 24/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 25/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 26/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 27/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 28/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 29/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 30/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 31/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 32/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 33/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 34/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 35/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 36/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 37/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 38/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 39/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 40/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 41/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 42/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 43/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 44/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 45/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 46/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 47/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 48/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 49/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 50/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 51/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 52/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 53/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 54/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 55/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 56/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 57/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 58/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 59/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 60/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 61/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 62/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 63/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 64/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 65/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 66/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 67/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 68/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 69/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 70/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 71/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 72/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 73/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 74/250
+32/32 [==============================] - 0s 3ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 75/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 76/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 77/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 78/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 79/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 80/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 81/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 82/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 83/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 84/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 85/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 86/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 87/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 88/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 89/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 90/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 91/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 92/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 93/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 94/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 95/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 96/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 97/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 98/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 99/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 100/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 101/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 102/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 103/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 104/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 105/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 106/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 107/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 108/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 109/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 110/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 111/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 112/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 113/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 114/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 115/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 116/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 117/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 118/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 119/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 120/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 121/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 122/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 123/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 124/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 125/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 126/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 127/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 128/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 129/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 130/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 131/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 132/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 133/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 134/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 135/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 136/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 137/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 138/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 139/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 140/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 141/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 142/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 143/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 144/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 145/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 146/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 147/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 148/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 149/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 150/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 151/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 152/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 153/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 154/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 155/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 156/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 157/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 158/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 159/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 160/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 161/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 162/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 163/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 164/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 165/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 166/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 167/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 168/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 169/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 170/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 171/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 172/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 173/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 174/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 175/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 176/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 177/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 178/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 179/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 180/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 181/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 182/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 183/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 184/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 185/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 186/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 187/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 188/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 189/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 190/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 191/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 192/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 193/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 194/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 195/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 196/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 197/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 198/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 199/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 200/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 201/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 202/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 203/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 204/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 205/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 206/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 207/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 208/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 209/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 210/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 211/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 212/250
+32/32 [==============================] - 0s 3ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 213/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 214/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 215/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 216/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 217/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 218/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 219/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 220/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 221/250
+32/32 [==============================] - 0s 3ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 222/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 223/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 224/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 225/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 226/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 227/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 228/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 229/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 230/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 231/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 232/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 233/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 234/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 235/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 236/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 237/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 238/250
+32/32 [==============================] - 0s 3ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 239/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 240/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 241/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 242/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 243/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 244/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 245/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 246/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 247/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 248/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 249/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+Epoch 250/250
+32/32 [==============================] - 0s 2ms/step - loss: 7.7125 - accuracy: 0.5000
+[ ]
+#Evaluate the model
+model_6.evaluate(X,Y)
+32/32 [==============================] - 0s 1ms/step - loss: 7.7125 - accuracy: 0.5000
+[7.712474346160889, 0.5]
+[ ]
+#see our model prediction
+plot_decision_boundary(model=model_6,X=X,Y=Y)
+
+[ ]
+#set random seed
+tf.random.set_seed(42)
+
+#1.create the model
+model_7=tf.keras.Sequential([
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#2. compile the model
+model_7.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(lr=0.001),
+                metrics=["accuracy"])
+
+#3. fit the model
+model_7.fit(X,Y,epochs=100)
+Epoch 1/100
+32/32 [==============================] - 1s 2ms/step - loss: 0.6891 - accuracy: 0.5020
+Epoch 2/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6848 - accuracy: 0.5170
+Epoch 3/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6824 - accuracy: 0.5160
+Epoch 4/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6813 - accuracy: 0.5300
+Epoch 5/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6802 - accuracy: 0.5390
+Epoch 6/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6794 - accuracy: 0.5380
+Epoch 7/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6785 - accuracy: 0.5500
+Epoch 8/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6778 - accuracy: 0.5480
+Epoch 9/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6772 - accuracy: 0.5530
+Epoch 10/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6766 - accuracy: 0.5510
+Epoch 11/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6760 - accuracy: 0.5500
+Epoch 12/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6754 - accuracy: 0.5550
+Epoch 13/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6747 - accuracy: 0.5560
+Epoch 14/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6741 - accuracy: 0.5540
+Epoch 15/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6734 - accuracy: 0.5580
+Epoch 16/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6727 - accuracy: 0.5550
+Epoch 17/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6722 - accuracy: 0.5550
+Epoch 18/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6716 - accuracy: 0.5550
+Epoch 19/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6710 - accuracy: 0.5590
+Epoch 20/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6702 - accuracy: 0.5600
+Epoch 21/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6696 - accuracy: 0.5640
+Epoch 22/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6688 - accuracy: 0.5600
+Epoch 23/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6682 - accuracy: 0.5700
+Epoch 24/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6679 - accuracy: 0.5570
+Epoch 25/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6671 - accuracy: 0.5670
+Epoch 26/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6662 - accuracy: 0.5750
+Epoch 27/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6657 - accuracy: 0.5810
+Epoch 28/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6645 - accuracy: 0.5700
+Epoch 29/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6642 - accuracy: 0.5700
+Epoch 30/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6634 - accuracy: 0.5790
+Epoch 31/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6627 - accuracy: 0.5760
+Epoch 32/100
+32/32 [==============================] - 0s 4ms/step - loss: 0.6619 - accuracy: 0.5760
+Epoch 33/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6610 - accuracy: 0.5760
+Epoch 34/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6606 - accuracy: 0.5760
+Epoch 35/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6597 - accuracy: 0.5790
+Epoch 36/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6586 - accuracy: 0.5780
+Epoch 37/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6580 - accuracy: 0.5780
+Epoch 38/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6573 - accuracy: 0.5790
+Epoch 39/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6564 - accuracy: 0.5790
+Epoch 40/100
+32/32 [==============================] - 0s 4ms/step - loss: 0.6556 - accuracy: 0.5760
+Epoch 41/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6548 - accuracy: 0.5780
+Epoch 42/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6540 - accuracy: 0.5750
+Epoch 43/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6530 - accuracy: 0.5780
+Epoch 44/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6521 - accuracy: 0.5810
+Epoch 45/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6496 - accuracy: 0.5810
+Epoch 46/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6481 - accuracy: 0.5830
+Epoch 47/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6472 - accuracy: 0.5850
+Epoch 48/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6451 - accuracy: 0.5880
+Epoch 49/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6426 - accuracy: 0.5880
+Epoch 50/100
+32/32 [==============================] - 0s 4ms/step - loss: 0.6404 - accuracy: 0.5940
+Epoch 51/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6384 - accuracy: 0.6010
+Epoch 52/100
+32/32 [==============================] - 0s 4ms/step - loss: 0.6364 - accuracy: 0.6130
+Epoch 53/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6344 - accuracy: 0.6110
+Epoch 54/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6312 - accuracy: 0.6280
+Epoch 55/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6287 - accuracy: 0.6380
+Epoch 56/100
+32/32 [==============================] - 0s 4ms/step - loss: 0.6259 - accuracy: 0.6840
+Epoch 57/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6227 - accuracy: 0.6950
+Epoch 58/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6200 - accuracy: 0.6990
+Epoch 59/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6168 - accuracy: 0.6950
+Epoch 60/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.6133 - accuracy: 0.7240
+Epoch 61/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6101 - accuracy: 0.7200
+Epoch 62/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6059 - accuracy: 0.7330
+Epoch 63/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.6014 - accuracy: 0.7400
+Epoch 64/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.5966 - accuracy: 0.7460
+Epoch 65/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5905 - accuracy: 0.7440
+Epoch 66/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5830 - accuracy: 0.7450
+Epoch 67/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5757 - accuracy: 0.7460
+Epoch 68/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5683 - accuracy: 0.7800
+Epoch 69/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5614 - accuracy: 0.8010
+Epoch 70/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5548 - accuracy: 0.8010
+Epoch 71/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5474 - accuracy: 0.8240
+Epoch 72/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5406 - accuracy: 0.8460
+Epoch 73/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5327 - accuracy: 0.8470
+Epoch 74/100
+32/32 [==============================] - 0s 3ms/step - loss: 0.5243 - accuracy: 0.8620
+Epoch 75/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5148 - accuracy: 0.8870
+Epoch 76/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.5042 - accuracy: 0.8820
+Epoch 77/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4927 - accuracy: 0.9300
+Epoch 78/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4824 - accuracy: 0.9090
+Epoch 79/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4733 - accuracy: 0.9460
+Epoch 80/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4632 - accuracy: 0.9600
+Epoch 81/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4546 - accuracy: 0.9600
+Epoch 82/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4456 - accuracy: 0.9580
+Epoch 83/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4360 - accuracy: 0.9630
+Epoch 84/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4260 - accuracy: 0.9690
+Epoch 85/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4145 - accuracy: 0.9700
+Epoch 86/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.4059 - accuracy: 0.9740
+Epoch 87/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3962 - accuracy: 0.9750
+Epoch 88/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3873 - accuracy: 0.9720
+Epoch 89/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3795 - accuracy: 0.9750
+Epoch 90/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3716 - accuracy: 0.9750
+Epoch 91/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3635 - accuracy: 0.9840
+Epoch 92/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3554 - accuracy: 0.9830
+Epoch 93/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3482 - accuracy: 0.9800
+Epoch 94/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3404 - accuracy: 0.9820
+Epoch 95/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3329 - accuracy: 0.9880
+Epoch 96/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3268 - accuracy: 0.9870
+Epoch 97/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3190 - accuracy: 0.9870
+Epoch 98/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3122 - accuracy: 0.9890
+Epoch 99/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.3059 - accuracy: 0.9880
+Epoch 100/100
+32/32 [==============================] - 0s 2ms/step - loss: 0.2993 - accuracy: 0.9890
+<keras.callbacks.History at 0x7fe9d194b790>
+[ ]
+#evaluate our model
+model_7.evaluate(X,Y)
+32/32 [==============================] - 0s 2ms/step - loss: 0.2948 - accuracy: 0.9910
+[0.29480040073394775, 0.9909999966621399]
+[ ]
+#let's visualize our incredible metrics
+plot_decision_boundary(model=model_7,X=X,Y=Y)
+
+we have discussed the concept of linear and non linear function(or lines) now let's see them in action
+[ ]
+#create a toy tensor (very similar to the data we pass to our model)
+A=tf.cast(tf.range(-10,10),tf.float32)
+A
+<tf.Tensor: shape=(20,), dtype=float32, numpy=
+array([-10.,  -9.,  -8.,  -7.,  -6.,  -5.,  -4.,  -3.,  -2.,  -1.,   0.,
+         1.,   2.,   3.,   4.,   5.,   6.,   7.,   8.,   9.],
+      dtype=float32)>
+[ ]
+plt.plot(A)
+
+[ ]
+#let's us start replicating sigmoid -sigmoid(x)=(1/1+exp(-x))
+def sigmoid(x):
+   return 1/(1+ tf.exp(-x))
+sigmoid(A)
+<tf.Tensor: shape=(20,), dtype=float32, numpy=
+array([4.5397872e-05, 1.2339458e-04, 3.3535014e-04, 9.1105117e-04,
+       2.4726233e-03, 6.6928510e-03, 1.7986210e-02, 4.7425874e-02,
+       1.1920292e-01, 2.6894143e-01, 5.0000000e-01, 7.3105860e-01,
+       8.8079703e-01, 9.5257413e-01, 9.8201376e-01, 9.9330717e-01,
+       9.9752742e-01, 9.9908900e-01, 9.9966466e-01, 9.9987662e-01],
+      dtype=float32)>
+[ ]
+# plot our toy tensor transformed by sigmoid
+plt.plot(sigmoid(A))
+
+[ ]
+#let's us recreat a relu function 
+def relu(x):
+  return tf.maximum(0,x)
+#let us pass our toy function to the custom relu function
+relu(A)
+<tf.Tensor: shape=(20,), dtype=float32, numpy=
+array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 2., 3., 4., 5., 6.,
+       7., 8., 9.], dtype=float32)>
+[ ]
+# plot our toy function with relu
+plt.plot(relu(A))
+
+[ ]
+#let's try linear activation function
+tf.keras.activations.linear(A)
+<tf.Tensor: shape=(20,), dtype=float32, numpy=
+array([-10.,  -9.,  -8.,  -7.,  -6.,  -5.,  -4.,  -3.,  -2.,  -1.,   0.,
+         1.,   2.,   3.,   4.,   5.,   6.,   7.,   8.,   9.],
+      dtype=float32)>
+[ ]
+#does activation change the plot
+plt.plot(tf.keras.activations.linear(A))
+
+[ ]
+#does A even change
+A=tf.keras.activations.linear(A)
+Evaluating and Improving our classification model
+so far we are training and testing on the same dataset...
+
+however in in machine learning it is basically as sin.
+
+so let us create training and testing dataset
+
+[ ]
+#check how many samples we have
+len(X)
+1000
+[ ]
+X,Y
+(array([[ 0.75424625,  0.23148074],
+        [-0.75615888,  0.15325888],
+        [-0.81539193,  0.17328203],
+        ...,
+        [-0.13690036, -0.81001183],
+        [ 0.67036156, -0.76750154],
+        [ 0.28105665,  0.96382443]]),
+ array([1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0,
+        0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1,
+        0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1,
+        1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1,
+        1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1,
+        1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1,
+        0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0,
+        1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+        1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1,
+        0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,
+        1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0,
+        0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1,
+        0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1,
+        1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0,
+        1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0,
+        0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0,
+        0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1,
+        1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
+        0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,
+        1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+        1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1,
+        1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0,
+        1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,
+        0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+        1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1,
+        1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1,
+        1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+        0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1,
+        0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1,
+        1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1,
+        1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1,
+        1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0,
+        1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1,
+        1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1,
+        1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0,
+        0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1,
+        0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1,
+        0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1,
+        1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0,
+        0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+        0, 1, 0, 1, 0, 0, 0, 1, 0, 0]))
+[ ]
+#split into test and train test
+X_train,Y_train=X[:800],Y[:800]
+X_test,Y_test=X[800:],Y[800:]
+X_train.shape,X_train.shape,Y_train.shape,Y_test.shape
+
+((800, 2), (800, 2), (800,), (200,))
+[ ]
+#let us create the data to fitting on the training data and doing our prediction on the testing data
+
+#set random seed
+tf.random.set_seed(42)
+
+#1. build the model
+model_8=tf.keras.Sequential([
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#2. compile the model
+model_8.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(lr=0.01),
+                metrics=["accuracy"])
+
+#3. fit your model
+history=model_8.fit(X_train,Y_train,epochs=25)
+Epoch 1/25
+/usr/local/lib/python3.8/dist-packages/keras/optimizers/optimizer_v2/adam.py:110: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  super(Adam, self).__init__(name, **kwargs)
+25/25 [==============================] - 1s 2ms/step - loss: 0.6847 - accuracy: 0.5425
+Epoch 2/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.6777 - accuracy: 0.5525
+Epoch 3/25
+25/25 [==============================] - 0s 3ms/step - loss: 0.6736 - accuracy: 0.5512
+Epoch 4/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.6681 - accuracy: 0.5775
+Epoch 5/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.6633 - accuracy: 0.5850
+Epoch 6/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.6546 - accuracy: 0.5838
+Epoch 7/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.6413 - accuracy: 0.6750
+Epoch 8/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.6264 - accuracy: 0.7013
+Epoch 9/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.6038 - accuracy: 0.7487
+Epoch 10/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.5714 - accuracy: 0.7738
+Epoch 11/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.5404 - accuracy: 0.7650
+Epoch 12/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.5015 - accuracy: 0.7837
+Epoch 13/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.4683 - accuracy: 0.7975
+Epoch 14/25
+25/25 [==============================] - 0s 3ms/step - loss: 0.4113 - accuracy: 0.8450
+Epoch 15/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.3625 - accuracy: 0.9125
+Epoch 16/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.3209 - accuracy: 0.9312
+Epoch 17/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.2847 - accuracy: 0.9488
+Epoch 18/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.2597 - accuracy: 0.9525
+Epoch 19/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.2375 - accuracy: 0.9563
+Epoch 20/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.2135 - accuracy: 0.9663
+Epoch 21/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.1938 - accuracy: 0.9775
+Epoch 22/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.1752 - accuracy: 0.9737
+Epoch 23/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.1619 - accuracy: 0.9787
+Epoch 24/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.1550 - accuracy: 0.9775
+Epoch 25/25
+25/25 [==============================] - 0s 2ms/step - loss: 0.1490 - accuracy: 0.9762
+[ ]
+#evaluate our model
+model_8.evaluate(X_test,Y_test)
+7/7 [==============================] - 0s 2ms/step - loss: 0.1247 - accuracy: 1.0000
+[0.12468848377466202, 1.0]
+[ ]
+#plot the decision boundaries
+plt.figure(figsize=(12,6))
+plt.subplot(1,2,1)
+plt.title("train")
+plot_decision_boundary(model=model_8,X=X_train,Y=Y_train)
+plt.subplot(1,2,2)
+plt.title("test")
+plot_decision_boundary(model=model_8,X=X_test,Y=Y_test)
+plt.show()
+
+Plot the loss(or training) curve.
+[ ]
+#convert history into dataframe
+pd.DataFrame(history.history) 
+
+[ ]
+#plot the loss curve
+pd.DataFrame(history.history).plot()
+plt.title("model_8 loss curve")
+
+note:- for many problem the loss function going down means that the model is improving (the prediction is gettign closer to the ground truth labels).
+
+finding the best learning rate
+to find the ideal learning rate. (the learning rate where the loss decreases the most during training) we are going to do the following steps:
+
+learning rate callback- you can think of a callback as an extra piece of functionality,you can add to your while it is training
+
+Another rate- we could use the same one as above but we are practising building models here
+
+modified lost curve plot
+
+[ ]
+#set random seed
+tf.random.set_seed(42)
+
+#1.create a model(same as model 8)
+model_9=tf.keras.Sequential([
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#2.compile the model
+model_9.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#create a callback
+lr_scheduler=tf.keras.callbacks.LearningRateScheduler(lambda epoch: 1e-4 *10**(epoch/20))
+
+#3.fit the model
+history_9=model_9.fit(X_train,Y_train,epochs=100,callbacks=[lr_scheduler])
+Epoch 1/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6945 - accuracy: 0.4988 - lr: 1.0000e-04
+Epoch 2/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6938 - accuracy: 0.4975 - lr: 1.1220e-04
+Epoch 3/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6930 - accuracy: 0.4963 - lr: 1.2589e-04
+Epoch 4/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6922 - accuracy: 0.4975 - lr: 1.4125e-04
+Epoch 5/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6914 - accuracy: 0.5063 - lr: 1.5849e-04
+Epoch 6/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6906 - accuracy: 0.5013 - lr: 1.7783e-04
+Epoch 7/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6898 - accuracy: 0.4950 - lr: 1.9953e-04
+Epoch 8/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6889 - accuracy: 0.5038 - lr: 2.2387e-04
+Epoch 9/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6880 - accuracy: 0.5013 - lr: 2.5119e-04
+Epoch 10/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6871 - accuracy: 0.5050 - lr: 2.8184e-04
+Epoch 11/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6863 - accuracy: 0.5200 - lr: 3.1623e-04
+Epoch 12/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6856 - accuracy: 0.5163 - lr: 3.5481e-04
+Epoch 13/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6847 - accuracy: 0.5175 - lr: 3.9811e-04
+Epoch 14/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6842 - accuracy: 0.5200 - lr: 4.4668e-04
+Epoch 15/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6835 - accuracy: 0.5213 - lr: 5.0119e-04
+Epoch 16/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6829 - accuracy: 0.5213 - lr: 5.6234e-04
+Epoch 17/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6826 - accuracy: 0.5225 - lr: 6.3096e-04
+Epoch 18/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6819 - accuracy: 0.5300 - lr: 7.0795e-04
+Epoch 19/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6816 - accuracy: 0.5312 - lr: 7.9433e-04
+Epoch 20/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6811 - accuracy: 0.5387 - lr: 8.9125e-04
+Epoch 21/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6806 - accuracy: 0.5400 - lr: 0.0010
+Epoch 22/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6801 - accuracy: 0.5412 - lr: 0.0011
+Epoch 23/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6796 - accuracy: 0.5400 - lr: 0.0013
+Epoch 24/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6790 - accuracy: 0.5425 - lr: 0.0014
+Epoch 25/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6784 - accuracy: 0.5450 - lr: 0.0016
+Epoch 26/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6778 - accuracy: 0.5387 - lr: 0.0018
+Epoch 27/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6770 - accuracy: 0.5425 - lr: 0.0020
+Epoch 28/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6760 - accuracy: 0.5537 - lr: 0.0022
+Epoch 29/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6754 - accuracy: 0.5512 - lr: 0.0025
+Epoch 30/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6739 - accuracy: 0.5575 - lr: 0.0028
+Epoch 31/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6726 - accuracy: 0.5500 - lr: 0.0032
+Epoch 32/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6711 - accuracy: 0.5512 - lr: 0.0035
+Epoch 33/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6688 - accuracy: 0.5562 - lr: 0.0040
+Epoch 34/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6672 - accuracy: 0.5612 - lr: 0.0045
+Epoch 35/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6660 - accuracy: 0.5888 - lr: 0.0050
+Epoch 36/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6625 - accuracy: 0.5625 - lr: 0.0056
+Epoch 37/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6560 - accuracy: 0.5813 - lr: 0.0063
+Epoch 38/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6521 - accuracy: 0.6025 - lr: 0.0071
+Epoch 39/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6415 - accuracy: 0.7088 - lr: 0.0079
+Epoch 40/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6210 - accuracy: 0.7113 - lr: 0.0089
+Epoch 41/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.5904 - accuracy: 0.7487 - lr: 0.0100
+Epoch 42/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.5688 - accuracy: 0.7312 - lr: 0.0112
+Epoch 43/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.5346 - accuracy: 0.7563 - lr: 0.0126
+Epoch 44/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.4533 - accuracy: 0.8150 - lr: 0.0141
+Epoch 45/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.3455 - accuracy: 0.9112 - lr: 0.0158
+Epoch 46/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.2570 - accuracy: 0.9463 - lr: 0.0178
+Epoch 47/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1968 - accuracy: 0.9575 - lr: 0.0200
+Epoch 48/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1336 - accuracy: 0.9700 - lr: 0.0224
+Epoch 49/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1310 - accuracy: 0.9613 - lr: 0.0251
+Epoch 50/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1002 - accuracy: 0.9700 - lr: 0.0282
+Epoch 51/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1166 - accuracy: 0.9638 - lr: 0.0316
+Epoch 52/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.1368 - accuracy: 0.9513 - lr: 0.0355
+Epoch 53/100
+25/25 [==============================] - 0s 9ms/step - loss: 0.0879 - accuracy: 0.9787 - lr: 0.0398
+Epoch 54/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.1187 - accuracy: 0.9588 - lr: 0.0447
+Epoch 55/100
+25/25 [==============================] - 0s 5ms/step - loss: 0.0733 - accuracy: 0.9712 - lr: 0.0501
+Epoch 56/100
+25/25 [==============================] - 0s 6ms/step - loss: 0.1132 - accuracy: 0.9550 - lr: 0.0562
+Epoch 57/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1058 - accuracy: 0.9613 - lr: 0.0631
+Epoch 58/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.0662 - accuracy: 0.9750 - lr: 0.0708
+Epoch 59/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1864 - accuracy: 0.9287 - lr: 0.0794
+Epoch 60/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1902 - accuracy: 0.9250 - lr: 0.0891
+Epoch 61/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.4318 - accuracy: 0.8537 - lr: 0.1000
+Epoch 62/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1858 - accuracy: 0.9712 - lr: 0.1122
+Epoch 63/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.0636 - accuracy: 0.9900 - lr: 0.1259
+Epoch 64/100
+25/25 [==============================] - 0s 5ms/step - loss: 0.0872 - accuracy: 0.9638 - lr: 0.1413
+Epoch 65/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.1467 - accuracy: 0.9463 - lr: 0.1585
+Epoch 66/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.2095 - accuracy: 0.9125 - lr: 0.1778
+Epoch 67/100
+25/25 [==============================] - 0s 7ms/step - loss: 0.2509 - accuracy: 0.9150 - lr: 0.1995
+Epoch 68/100
+25/25 [==============================] - 0s 6ms/step - loss: 0.0715 - accuracy: 0.9800 - lr: 0.2239
+Epoch 69/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.0796 - accuracy: 0.9750 - lr: 0.2512
+Epoch 70/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.1187 - accuracy: 0.9538 - lr: 0.2818
+Epoch 71/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6672 - accuracy: 0.7950 - lr: 0.3162
+Epoch 72/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.4341 - accuracy: 0.8050 - lr: 0.3548
+Epoch 73/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.4319 - accuracy: 0.8075 - lr: 0.3981
+Epoch 74/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.4243 - accuracy: 0.8100 - lr: 0.4467
+Epoch 75/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.5505 - accuracy: 0.7088 - lr: 0.5012
+Epoch 76/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.5599 - accuracy: 0.6950 - lr: 0.5623
+Epoch 77/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.5421 - accuracy: 0.6775 - lr: 0.6310
+Epoch 78/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.5457 - accuracy: 0.6850 - lr: 0.7079
+Epoch 79/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6479 - accuracy: 0.5962 - lr: 0.7943
+Epoch 80/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6578 - accuracy: 0.5213 - lr: 0.8913
+Epoch 81/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6719 - accuracy: 0.5462 - lr: 1.0000
+Epoch 82/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7027 - accuracy: 0.5663 - lr: 1.1220
+Epoch 83/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7354 - accuracy: 0.4762 - lr: 1.2589
+Epoch 84/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7083 - accuracy: 0.5088 - lr: 1.4125
+Epoch 85/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7265 - accuracy: 0.5038 - lr: 1.5849
+Epoch 86/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7746 - accuracy: 0.5038 - lr: 1.7783
+Epoch 87/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7676 - accuracy: 0.5063 - lr: 1.9953
+Epoch 88/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7573 - accuracy: 0.5163 - lr: 2.2387
+Epoch 89/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7573 - accuracy: 0.4963 - lr: 2.5119
+Epoch 90/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7830 - accuracy: 0.5238 - lr: 2.8184
+Epoch 91/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.8093 - accuracy: 0.5213 - lr: 3.1623
+Epoch 92/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7359 - accuracy: 0.4888 - lr: 3.5481
+Epoch 93/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7422 - accuracy: 0.5063 - lr: 3.9811
+Epoch 94/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7596 - accuracy: 0.5063 - lr: 4.4668
+Epoch 95/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.8232 - accuracy: 0.4863 - lr: 5.0119
+Epoch 96/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7861 - accuracy: 0.4613 - lr: 5.6234
+Epoch 97/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.8075 - accuracy: 0.5013 - lr: 6.3096
+Epoch 98/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.9649 - accuracy: 0.4963 - lr: 7.0795
+Epoch 99/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.9713 - accuracy: 0.4913 - lr: 7.9433
+Epoch 100/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.8583 - accuracy: 0.4613 - lr: 8.9125
+[ ]
+#see the loss function using dataframe
+pd.DataFrame(history_9.history).plot(figsize=(10,7),xlabel="epochs")
+
+[ ]
+#compare the learning rate to the loss
+lrs=1e-4*(10**(tf.range(100)/20))
+plt.figure(figsize=(10,7))
+plt.semilogx(lrs,history_9.history["loss"])
+plt.xlabel("learning rate")
+plt.ylabel("loss rate")
+plt.title("learning rate vs loss rate")
+
+[ ]
+#random seed
+tf.random.set_seed(42)
+
+#create the model
+model_a=tf.keras.Sequential([
+    tf.keras.layers.Dense(100,activation="relu"),
+    tf.keras.layers.Dense(100,activation="relu"),
+    tf.keras.layers.Dense(10,activation="relu"),
+    tf.keras.layers.Dense(1,activation="relu"),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#compile the model
+model_a.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#check the learning rate
+lr_scheduler=tf.keras.callbacks.LearningRateScheduler(lambda epoch: 1e-4* 10 **((epoch)/20))
+
+#fit the model
+history_a=model_a.fit(X_train,Y_train,epochs=100,callbacks=[lr_scheduler])
+Epoch 1/100
+25/25 [==============================] - 1s 3ms/step - loss: 0.6933 - accuracy: 0.4825 - lr: 1.0000e-04
+Epoch 2/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6932 - accuracy: 0.5000 - lr: 1.1220e-04
+Epoch 3/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6931 - accuracy: 0.4988 - lr: 1.2589e-04
+Epoch 4/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6931 - accuracy: 0.4863 - lr: 1.4125e-04
+Epoch 5/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 1.5849e-04
+Epoch 6/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4737 - lr: 1.7783e-04
+Epoch 7/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6931 - accuracy: 0.4988 - lr: 1.9953e-04
+Epoch 8/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6931 - accuracy: 0.4863 - lr: 2.2387e-04
+Epoch 9/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4888 - lr: 2.5119e-04
+Epoch 10/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6931 - accuracy: 0.5013 - lr: 2.8184e-04
+Epoch 11/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4688 - lr: 3.1623e-04
+Epoch 12/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4913 - lr: 3.5481e-04
+Epoch 13/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 3.9811e-04
+Epoch 14/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 4.4668e-04
+Epoch 15/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4863 - lr: 5.0119e-04
+Epoch 16/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 5.6234e-04
+Epoch 17/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 6.3096e-04
+Epoch 18/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 7.0795e-04
+Epoch 19/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6932 - accuracy: 0.4588 - lr: 7.9433e-04
+Epoch 20/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 8.9125e-04
+Epoch 21/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4888 - lr: 0.0010
+Epoch 22/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0011
+Epoch 23/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0013
+Epoch 24/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0014
+Epoch 25/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0016
+Epoch 26/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0018
+Epoch 27/100
+25/25 [==============================] - 0s 6ms/step - loss: 0.6932 - accuracy: 0.4737 - lr: 0.0020
+Epoch 28/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0022
+Epoch 29/100
+25/25 [==============================] - 0s 10ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0025
+Epoch 30/100
+25/25 [==============================] - 0s 9ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0028
+Epoch 31/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0032
+Epoch 32/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0035
+Epoch 33/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4787 - lr: 0.0040
+Epoch 34/100
+25/25 [==============================] - 0s 4ms/step - loss: 0.6932 - accuracy: 0.5013 - lr: 0.0045
+Epoch 35/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6934 - accuracy: 0.5013 - lr: 0.0050
+Epoch 36/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.6932 - accuracy: 0.4888 - lr: 0.0056
+Epoch 37/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.6932 - accuracy: 0.4988 - lr: 0.0063
+Epoch 38/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.6937 - accuracy: 0.4988 - lr: 0.0071
+Epoch 39/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.6932 - accuracy: 0.4988 - lr: 0.0079
+Epoch 40/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6934 - accuracy: 0.5013 - lr: 0.0089
+Epoch 41/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6935 - accuracy: 0.5013 - lr: 0.0100
+Epoch 42/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6934 - accuracy: 0.4588 - lr: 0.0112
+Epoch 43/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6932 - accuracy: 0.4988 - lr: 0.0126
+Epoch 44/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6934 - accuracy: 0.4863 - lr: 0.0141
+Epoch 45/100
+25/25 [==============================] - 0s 5ms/step - loss: 0.6933 - accuracy: 0.4988 - lr: 0.0158
+Epoch 46/100
+25/25 [==============================] - 0s 9ms/step - loss: 0.6934 - accuracy: 0.4762 - lr: 0.0178
+Epoch 47/100
+25/25 [==============================] - 0s 10ms/step - loss: 0.6940 - accuracy: 0.5013 - lr: 0.0200
+Epoch 48/100
+25/25 [==============================] - 0s 8ms/step - loss: 0.6943 - accuracy: 0.4812 - lr: 0.0224
+Epoch 49/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6942 - accuracy: 0.4787 - lr: 0.0251
+Epoch 50/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6938 - accuracy: 0.4812 - lr: 0.0282
+Epoch 51/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6935 - accuracy: 0.5013 - lr: 0.0316
+Epoch 52/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6938 - accuracy: 0.5013 - lr: 0.0355
+Epoch 53/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6941 - accuracy: 0.4938 - lr: 0.0398
+Epoch 54/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6951 - accuracy: 0.4762 - lr: 0.0447
+Epoch 55/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6958 - accuracy: 0.4988 - lr: 0.0501
+Epoch 56/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6956 - accuracy: 0.4787 - lr: 0.0562
+Epoch 57/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6954 - accuracy: 0.4588 - lr: 0.0631
+Epoch 58/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6944 - accuracy: 0.4988 - lr: 0.0708
+Epoch 59/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6948 - accuracy: 0.4888 - lr: 0.0794
+Epoch 60/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6957 - accuracy: 0.4837 - lr: 0.0891
+Epoch 61/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6975 - accuracy: 0.4812 - lr: 0.1000
+Epoch 62/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.6954 - accuracy: 0.4888 - lr: 0.1122
+Epoch 63/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6924 - accuracy: 0.5238 - lr: 0.1259
+Epoch 64/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7003 - accuracy: 0.4963 - lr: 0.1413
+Epoch 65/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7056 - accuracy: 0.4863 - lr: 0.1585
+Epoch 66/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7005 - accuracy: 0.4737 - lr: 0.1778
+Epoch 67/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6970 - accuracy: 0.5038 - lr: 0.1995
+Epoch 68/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6983 - accuracy: 0.4812 - lr: 0.2239
+Epoch 69/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6964 - accuracy: 0.4888 - lr: 0.2512
+Epoch 70/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6964 - accuracy: 0.5138 - lr: 0.2818
+Epoch 71/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7054 - accuracy: 0.4837 - lr: 0.3162
+Epoch 72/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7009 - accuracy: 0.5013 - lr: 0.3548
+Epoch 73/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.6976 - accuracy: 0.4837 - lr: 0.3981
+Epoch 74/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7065 - accuracy: 0.4762 - lr: 0.4467
+Epoch 75/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7004 - accuracy: 0.4963 - lr: 0.5012
+Epoch 76/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7026 - accuracy: 0.4963 - lr: 0.5623
+Epoch 77/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7066 - accuracy: 0.4988 - lr: 0.6310
+Epoch 78/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7120 - accuracy: 0.5063 - lr: 0.7079
+Epoch 79/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7106 - accuracy: 0.5213 - lr: 0.7943
+Epoch 80/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7023 - accuracy: 0.4963 - lr: 0.8913
+Epoch 81/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7106 - accuracy: 0.5088 - lr: 1.0000
+Epoch 82/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7130 - accuracy: 0.5387 - lr: 1.1220
+Epoch 83/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7234 - accuracy: 0.4837 - lr: 1.2589
+Epoch 84/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7031 - accuracy: 0.5038 - lr: 1.4125
+Epoch 85/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7321 - accuracy: 0.4963 - lr: 1.5849
+Epoch 86/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7529 - accuracy: 0.5038 - lr: 1.7783
+Epoch 87/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7642 - accuracy: 0.5113 - lr: 1.9953
+Epoch 88/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7592 - accuracy: 0.4963 - lr: 2.2387
+Epoch 89/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7729 - accuracy: 0.5213 - lr: 2.5119
+Epoch 90/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7815 - accuracy: 0.4913 - lr: 2.8184
+Epoch 91/100
+25/25 [==============================] - 0s 2ms/step - loss: 0.7915 - accuracy: 0.5163 - lr: 3.1623
+Epoch 92/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7424 - accuracy: 0.5113 - lr: 3.5481
+Epoch 93/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7371 - accuracy: 0.5088 - lr: 3.9811
+Epoch 94/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7559 - accuracy: 0.4938 - lr: 4.4668
+Epoch 95/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.8124 - accuracy: 0.4863 - lr: 5.0119
+Epoch 96/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.7749 - accuracy: 0.4638 - lr: 5.6234
+Epoch 97/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.8023 - accuracy: 0.5013 - lr: 6.3096
+Epoch 98/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.9584 - accuracy: 0.4963 - lr: 7.0795
+Epoch 99/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.9379 - accuracy: 0.4913 - lr: 7.9433
+Epoch 100/100
+25/25 [==============================] - 0s 3ms/step - loss: 0.8573 - accuracy: 0.4663 - lr: 8.9125
+[ ]
+lr_a=1e-4*(10**(tf.range(100)/20))
+plt.figure(figsize=(12,6))
+plt.semilogx(lr_a,history_a.history["loss"])
+plt.xlabel("learning rate")
+plt.ylabel("loss rate")
+plt.title("learning rate vs loss rate")
+
+let us build a model with improving rate
+[ ]
+#set random set 
+tf.random.set_seed(42)
+
+#create the model
+model_10=tf.keras.Sequential([
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(1,activation="sigmoid")
+])
+
+#compile the model
+model_10.compile(loss=tf.keras.losses.BinaryCrossentropy(),
+                 optimizer=tf.keras.optimizers.Adam(lr=0.02),
+                 metrics=["accuracy"])
+
+#model fit
+model_10.fit(X_train,Y_train,epochs=20)
+Epoch 1/20
+/usr/local/lib/python3.8/dist-packages/keras/optimizers/optimizer_v2/adam.py:110: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  super(Adam, self).__init__(name, **kwargs)
+25/25 [==============================] - 1s 2ms/step - loss: 0.6837 - accuracy: 0.5600
+Epoch 2/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.6744 - accuracy: 0.5750
+Epoch 3/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.6626 - accuracy: 0.5875
+Epoch 4/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.6332 - accuracy: 0.6388
+Epoch 5/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.5830 - accuracy: 0.7563
+Epoch 6/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.4907 - accuracy: 0.8313
+Epoch 7/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.4251 - accuracy: 0.8450
+Epoch 8/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.3596 - accuracy: 0.8875
+Epoch 9/20
+25/25 [==============================] - 0s 3ms/step - loss: 0.3152 - accuracy: 0.9100
+Epoch 10/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.2512 - accuracy: 0.9500
+Epoch 11/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.2152 - accuracy: 0.9500
+Epoch 12/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.1721 - accuracy: 0.9750
+Epoch 13/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.1443 - accuracy: 0.9837
+Epoch 14/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.1232 - accuracy: 0.9862
+Epoch 15/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.1085 - accuracy: 0.9850
+Epoch 16/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.0940 - accuracy: 0.9937
+Epoch 17/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.0827 - accuracy: 0.9962
+Epoch 18/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.0798 - accuracy: 0.9937
+Epoch 19/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.0845 - accuracy: 0.9875
+Epoch 20/20
+25/25 [==============================] - 0s 2ms/step - loss: 0.0790 - accuracy: 0.9887
+<keras.callbacks.History at 0x7fe9d09fcb50>
+[ ]
+#evaluate the model
+model_10.evaluate(X_test,Y_test)
+7/7 [==============================] - 0s 3ms/step - loss: 0.0574 - accuracy: 0.9900
+[0.0574018768966198, 0.9900000095367432]
+[ ]
+#evaluate model 8
+model_8.evaluate(X_test,Y_test)
+7/7 [==============================] - 0s 2ms/step - loss: 0.1247 - accuracy: 1.0000
+[0.12468848377466202, 1.0]
+[ ]
+#plot our model_10 now
+plt.figure(figsize=(12,6))
+plt.subplot(1,2,1)
+plt.title("training data")
+plot_decision_boundary(model_10,X_train,Y_train)
+plt.subplot(1,2,2)
+plt.title("test")
+plot_decision_boundary(model_10,X_test,Y_test)
+plt.show()
+
+more classification evaluation methords
+Alongside visualizing our model results ,there are other hanful of methords we should be aware with and metrics you should know:
+
+Acurracy
+precision
+recall
+F1-score
+confusion matrix
+classification matrix(skit-learn)
+[ ]
+#check accuracy of our model
+loss,accuracy=model_10.evaluate(X_test,Y_test)
+print(f"Model loss on test set: {loss}")
+print(f"Model accuracy on the test set: {(accuracy*100):.2f}%")
+7/7 [==============================] - 0s 2ms/step - loss: 0.0574 - accuracy: 0.9900
+Model loss on test set: 0.0574018768966198
+Model accuracy on the test set: 99.00%
+let us make a confusion matrix
+[ ]
+#create confusion matrix 
+from sklearn.metrics import confusion_matrix
+
+#make some prediction
+Y_pred=model_10.predict(X_test)
+
+#create confusion matrix
+confusion_matrix(Y_test,tf.round(Y_pred))
+7/7 [==============================] - 0s 2ms/step
+array([[99,  2],
+       [ 0, 99]])
+[ ]
+Y_pred[:10]
+array([[9.8526549e-01],
+       [9.9923790e-01],
+       [9.9032348e-01],
+       [9.9706942e-01],
+       [3.9622915e-01],
+       [1.8126918e-02],
+       [9.6829075e-01],
+       [1.9746752e-02],
+       [9.9967164e-01],
+       [5.6459103e-04]], dtype=float32)
+oops... looks like our prediction has come out in prediction probability form... the standard output from sigmoid(or softmax)
+
+[ ]
+Y_test[:10]
+array([1, 1, 1, 1, 0, 0, 1, 0, 1, 0])
+[ ]
+#convert our prediction probabilities to binary format and view the first 10
+tf.round(Y_pred)[:10]
+<tf.Tensor: shape=(10, 1), dtype=float32, numpy=
+array([[1.],
+       [1.],
+       [1.],
+       [1.],
+       [0.],
+       [0.],
+       [1.],
+       [0.],
+       [1.],
+       [0.]], dtype=float32)>
+[ ]
+from prompt_toolkit.layout import HorizontalAlign
+#the confusion matrix matrix we are going to write is a remix of sckit-learn confusion_matrix
+
+import itertools
+
+figsize=(10,10)
+
+#confusion matrix confusion
+cm=confusion_matrix(Y_test,tf.round(Y_pred))
+cm_norm=cm.astype("float")/cm.sum(axis=1)[:np.newaxis]
+n_classes=cm.shape[0]
+
+#let's us prettify it
+fig,ax=plt.subplots(figsize=figsize)
+#create a matix plot
+cax=ax.matshow(cm,cmap=plt.cm.Blues)
+fig.colorbar(cax)
+
+#create classes
+classes=False
+
+if classes:
+  labels= classes
+else:
+  labels=np.arange(cm.shape[0])
+
+#labels our axis 
+ax.set(title="confusion matrix",
+       xlabel="predict",
+       ylabel="true_label",
+       xticks=np.arange(n_classes),
+       Yticks=np.arange(n_classes),
+       xticklabels=labels,
+       yticklabels=labels)
+
+#set x-labels to the bottom
+ax.xaxis.set_label_position("bottom")
+ax.xaxis.tick_bottom()
+
+#Adjust the label size
+ax.yaxis.label.set_size(20)
+ax.xaxis.label.set_size(20)
+ax.title.set_size(20)
+
+#set the theshold color for the different color 
+threshold=(cm.max()+cm.max())/2.
+
+#plot text on our each cell
+for i,j in itertools.product(range(cm.shape[0]),range(cm.shape[0])):
+  plt.text(i,j,f"{cm[i,j]} ({cm_norm[i,j]*100:.1f}%)",
+           horizontalalignment="center",
+           color="white" if cm[i,j] > threshold else "black",
+           size=15)
+
+
+working with a larger example in otherwords multiclass classification
+when you have more then two classes as an option, It's is know as multi-class classification -
+
+it means when you have three different classes it is called multiclass classification.
+It also means you have 100 different classes,It's multiclass classification
+To practice multi-class calssification , we'are going to build a neural class classification to classify images of different items of clothing.
+
+[ ]
+import tensorflow as tf
+from tensorflow.keras.datasets import fashion_mnist
+
+#data has already been sorted into training and test_sets for us
+(train_data,train_labels),(test_data,test_labels)=fashion_mnist.load_data()
+
+[ ]
+print(f"training label sample:\n{train_data[0]}\n")
+print(f"testing label sample:\n{train_labels[0]}\n")
+training label sample:
+[[  0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+    0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+    0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+    0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   1   0   0  13  73   0
+    0   1   4   0   0   0   0   1   1   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   3   0  36 136 127  62
+   54   0   0   0   1   3   4   0   0   3]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   6   0 102 204 176 134
+  144 123  23   0   0   0   0  12  10   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0   0 155 236 207 178
+  107 156 161 109  64  23  77 130  72  15]
+ [  0   0   0   0   0   0   0   0   0   0   0   1   0  69 207 223 218 216
+  216 163 127 121 122 146 141  88 172  66]
+ [  0   0   0   0   0   0   0   0   0   1   1   1   0 200 232 232 233 229
+  223 223 215 213 164 127 123 196 229   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0 183 225 216 223 228
+  235 227 224 222 224 221 223 245 173   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0 193 228 218 213 198
+  180 212 210 211 213 223 220 243 202   0]
+ [  0   0   0   0   0   0   0   0   0   1   3   0  12 219 220 212 218 192
+  169 227 208 218 224 212 226 197 209  52]
+ [  0   0   0   0   0   0   0   0   0   0   6   0  99 244 222 220 218 203
+  198 221 215 213 222 220 245 119 167  56]
+ [  0   0   0   0   0   0   0   0   0   4   0   0  55 236 228 230 228 240
+  232 213 218 223 234 217 217 209  92   0]
+ [  0   0   1   4   6   7   2   0   0   0   0   0 237 226 217 223 222 219
+  222 221 216 223 229 215 218 255  77   0]
+ [  0   3   0   0   0   0   0   0   0  62 145 204 228 207 213 221 218 208
+  211 218 224 223 219 215 224 244 159   0]
+ [  0   0   0   0  18  44  82 107 189 228 220 222 217 226 200 205 211 230
+  224 234 176 188 250 248 233 238 215   0]
+ [  0  57 187 208 224 221 224 208 204 214 208 209 200 159 245 193 206 223
+  255 255 221 234 221 211 220 232 246   0]
+ [  3 202 228 224 221 211 211 214 205 205 205 220 240  80 150 255 229 221
+  188 154 191 210 204 209 222 228 225   0]
+ [ 98 233 198 210 222 229 229 234 249 220 194 215 217 241  65  73 106 117
+  168 219 221 215 217 223 223 224 229  29]
+ [ 75 204 212 204 193 205 211 225 216 185 197 206 198 213 240 195 227 245
+  239 223 218 212 209 222 220 221 230  67]
+ [ 48 203 183 194 213 197 185 190 194 192 202 214 219 221 220 236 225 216
+  199 206 186 181 177 172 181 205 206 115]
+ [  0 122 219 193 179 171 183 196 204 210 213 207 211 210 200 196 194 191
+  195 191 198 192 176 156 167 177 210  92]
+ [  0   0  74 189 212 191 175 172 175 181 185 188 189 188 193 198 204 209
+  210 210 211 188 188 194 192 216 170   0]
+ [  2   0   0   0  66 200 222 237 239 242 246 243 244 221 220 193 191 179
+  182 182 181 176 166 168  99  58   0   0]
+ [  0   0   0   0   0   0   0  40  61  44  72  41  35   0   0   0   0   0
+    0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+    0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+    0   0   0   0   0   0   0   0   0   0]]
+
+testing label sample:
+9
+
+[ ]
+#check the shape of our data
+train_data[0].shape,train_labels[0].shape
+((28, 28), ())
+[ ]
+#plot single sample
+import matplotlib.pyplot as plt
+plt.imshow(train_data[7]);
+
+[ ]
+#check the sample label
+train_labels[7]
+2
+[ ]
+#create a small list so we can index onto training label's so they are human readable form.
+class_name=["T-shirt/top","trouser","pullover","Dress","coat","sandal","shirt","sneaker","bag","Ankel boot"]
+len(class_name)
+10
+[ ]
+#plot example image and it's label
+index_of_choice=2000
+plt.imshow(train_data[index_of_choice],cmap=plt.cm.binary)
+plt.title(class_name[train_labels[index_of_choice]])
+
+[ ]
+#plot random images
+import random
+plt.figure(figsize=(7,7))
+for i in range(4):
+  plt.subplot(2,2,i+1)
+  rand_index=random.choice(range(len(train_data)))
+  plt.imshow(train_data[rand_index],cmap=plt.cm.binary)
+  plt.title(class_name[train_labels[rand_index]])
+  plt.axis(False)
+
+build a multiclass classification model
+for our multi-class classification model we can use the same model as the similar archictectire as the binary classification model, however we need to tweak a few things
+
+Input shape = (28,28) one image
+output shape = (10) (one class of clothing)
+Loss function= tf.keras.losses.CategorialCrossentropy()
+If your data is one_hot_encoded use Categoricalentropy
+if your data is in integer form use SparseCategoricalentropy
+output layer activation - softmax(not sigmoid)
+[ ]
+#our data need to flattened from (28*28 to none,784)
+flatten_model=tf.keras.Sequential([tf.keras.layers.Flatten(input_shape=(28,28))])
+flatten_model.output_shape
+(None, 784)
+[ ]
+28*28
+784
+[ ]
+train_labels[:10]
+array([9, 0, 0, 3, 0, 2, 7, 2, 5, 5], dtype=uint8)
+[ ]
+tf.one_hot(train_labels[:10],depth=10)
+<tf.Tensor: shape=(10, 10), dtype=float32, numpy=
+array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+       [1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+       [1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 1., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 1., 0., 0.],
+       [0., 0., 1., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 1., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]], dtype=float32)>
+[ ]
+#set random seed
+tf.random.set_seed(42)
+
+#1.build a model
+model_11=tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28,28)),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(10,activation="softmax")
+])
+
+#2. compile the model
+model_11.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                 optimizer=tf.keras.optimizers.Adam(),
+                 metrics=["accuracy"])
+
+#3. fit our model
+non_norm_history=model_11.fit(train_data,
+                              train_labels,
+                              epochs=10,
+                              validation_data=(test_data,test_labels))
+Epoch 1/10
+1875/1875 [==============================] - 6s 3ms/step - loss: 2.1627 - accuracy: 0.1629 - val_loss: 1.7874 - val_accuracy: 0.2104
+Epoch 2/10
+1875/1875 [==============================] - 5s 2ms/step - loss: 1.7033 - accuracy: 0.2535 - val_loss: 1.6427 - val_accuracy: 0.2812
+Epoch 3/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.6271 - accuracy: 0.2836 - val_loss: 1.6482 - val_accuracy: 0.2998
+Epoch 4/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.6038 - accuracy: 0.2894 - val_loss: 1.5994 - val_accuracy: 0.2955
+Epoch 5/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.5967 - accuracy: 0.2955 - val_loss: 1.5777 - val_accuracy: 0.3137
+Epoch 6/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.5882 - accuracy: 0.3018 - val_loss: 1.5767 - val_accuracy: 0.3054
+Epoch 7/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.5809 - accuracy: 0.3118 - val_loss: 1.5741 - val_accuracy: 0.2898
+Epoch 8/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.5650 - accuracy: 0.3227 - val_loss: 1.5626 - val_accuracy: 0.3349
+Epoch 9/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.5585 - accuracy: 0.3327 - val_loss: 1.5659 - val_accuracy: 0.3423
+Epoch 10/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.5562 - accuracy: 0.3302 - val_loss: 1.5453 - val_accuracy: 0.3344
+[ ]
+model_11.summary()
+Model: "sequential_53"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ flatten_24 (Flatten)        (None, 784)               0         
+                                                                 
+ dense_128 (Dense)           (None, 4)                 3140      
+                                                                 
+ dense_129 (Dense)           (None, 4)                 20        
+                                                                 
+ dense_130 (Dense)           (None, 10)                50        
+                                                                 
+=================================================================
+Total params: 3,210
+Trainable params: 3,210
+Non-trainable params: 0
+_________________________________________________________________
+[ ]
+#check max and min values of training data
+train_data.min(),train_data.max()
+(0, 255)
+Neural networks prefer the data to scaled(or be normalized), this means they like to have numbers in the tensor in which they try to find the numbers in to be between 0 and 1
+
+[ ]
+#we can get our training and testing data between 0 and 1 by dividing by maximum
+train_data_norm=train_data/255.0
+test_data_norm=test_data/255.0
+
+#check the max and the min value 
+train_data_norm.min(),test_data_norm.max()
+(0.0, 1.0)
+[ ]
+#now our data is normalized so let's us find patterns in it
+
+#random set seed
+tf.random.set_seed(42)
+
+#build the model
+model_12=tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28,28)),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(10,activation="softmax")
+])
+
+#compile the model
+model_12.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                 optimizer=tf.keras.optimizers.Adam(),
+                 metrics=["accuracy"])
+
+#fit the model
+norm_history=model_12.fit(train_data_norm,train_labels,epochs=10,validation_data=(test_data_norm,test_labels))
+Epoch 1/10
+1875/1875 [==============================] - 5s 2ms/step - loss: 1.0348 - accuracy: 0.6474 - val_loss: 0.6937 - val_accuracy: 0.7617
+Epoch 2/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.6376 - accuracy: 0.7757 - val_loss: 0.6400 - val_accuracy: 0.7820
+Epoch 3/10
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5942 - accuracy: 0.7914 - val_loss: 0.6247 - val_accuracy: 0.7783
+Epoch 4/10
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5750 - accuracy: 0.7979 - val_loss: 0.6078 - val_accuracy: 0.7881
+Epoch 5/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5641 - accuracy: 0.8006 - val_loss: 0.6169 - val_accuracy: 0.7881
+Epoch 6/10
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5544 - accuracy: 0.8043 - val_loss: 0.5855 - val_accuracy: 0.7951
+Epoch 7/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5488 - accuracy: 0.8063 - val_loss: 0.6097 - val_accuracy: 0.7836
+Epoch 8/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5428 - accuracy: 0.8077 - val_loss: 0.5787 - val_accuracy: 0.7971
+Epoch 9/10
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5373 - accuracy: 0.8097 - val_loss: 0.5698 - val_accuracy: 0.7977
+Epoch 10/10
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5360 - accuracy: 0.8124 - val_loss: 0.5658 - val_accuracy: 0.8014
+note:-neural network prefer the data in numerical form as well as in scaled/formalized form(number between 1 and 0)
+
+[ ]
+import pandas as pd
+#plot the norm_normalized_data
+pd.DataFrame(non_norm_history.history).plot(title="norm_normalized_data")
+#plot the normalized_data
+pd.DataFrame(norm_history.history).plot(title="normalized_data")
+
+note:- the same model with slightly different data can produce Dramatically differently result. so when you are comparing model make sure you are comparing them on the same criteria(e.g same architecture but different data or same data but different architecture)
+
+[ ]
+#set random seed
+tf.random.set_seed(42)
+
+#create the model
+model=tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28,28)),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(10,activation="softmax"),
+])
+
+#build the model
+model.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+              optimizer=tf.keras.optimizers.Adam(),
+              metrics=["accuracy"])
+
+#learning rate
+schedule_rate=tf.keras.callbacks.LearningRateScheduler(lambda epoch: 1e-3* 10**(epoch/20))
+
+#compile the model
+lr_history=model.fit(train_data_norm,train_labels,epochs=40,validation_data=(test_data_norm,test_labels),callbacks=[schedule_rate])
+Epoch 1/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 1.0348 - accuracy: 0.6474 - val_loss: 0.6937 - val_accuracy: 0.7617 - lr: 0.0010
+Epoch 2/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.6366 - accuracy: 0.7759 - val_loss: 0.6400 - val_accuracy: 0.7808 - lr: 0.0011
+Epoch 3/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5934 - accuracy: 0.7911 - val_loss: 0.6278 - val_accuracy: 0.7770 - lr: 0.0013
+Epoch 4/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5749 - accuracy: 0.7969 - val_loss: 0.6122 - val_accuracy: 0.7871 - lr: 0.0014
+Epoch 5/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5655 - accuracy: 0.7987 - val_loss: 0.6061 - val_accuracy: 0.7913 - lr: 0.0016
+Epoch 6/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5569 - accuracy: 0.8022 - val_loss: 0.5917 - val_accuracy: 0.7940 - lr: 0.0018
+Epoch 7/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5542 - accuracy: 0.8036 - val_loss: 0.5898 - val_accuracy: 0.7896 - lr: 0.0020
+Epoch 8/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5509 - accuracy: 0.8039 - val_loss: 0.5829 - val_accuracy: 0.7949 - lr: 0.0022
+Epoch 9/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5468 - accuracy: 0.8047 - val_loss: 0.6036 - val_accuracy: 0.7833 - lr: 0.0025
+Epoch 10/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5478 - accuracy: 0.8058 - val_loss: 0.5736 - val_accuracy: 0.7974 - lr: 0.0028
+Epoch 11/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5446 - accuracy: 0.8059 - val_loss: 0.5672 - val_accuracy: 0.8016 - lr: 0.0032
+Epoch 12/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5432 - accuracy: 0.8067 - val_loss: 0.5773 - val_accuracy: 0.7950 - lr: 0.0035
+Epoch 13/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5425 - accuracy: 0.8056 - val_loss: 0.5775 - val_accuracy: 0.7992 - lr: 0.0040
+Epoch 14/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5407 - accuracy: 0.8078 - val_loss: 0.5616 - val_accuracy: 0.8075 - lr: 0.0045
+Epoch 15/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5408 - accuracy: 0.8052 - val_loss: 0.5773 - val_accuracy: 0.8039 - lr: 0.0050
+Epoch 16/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5437 - accuracy: 0.8058 - val_loss: 0.5679 - val_accuracy: 0.8024 - lr: 0.0056
+Epoch 17/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5419 - accuracy: 0.8073 - val_loss: 0.6003 - val_accuracy: 0.7962 - lr: 0.0063
+Epoch 18/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5490 - accuracy: 0.8055 - val_loss: 0.5583 - val_accuracy: 0.8063 - lr: 0.0071
+Epoch 19/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5503 - accuracy: 0.8047 - val_loss: 0.6072 - val_accuracy: 0.7858 - lr: 0.0079
+Epoch 20/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5538 - accuracy: 0.8029 - val_loss: 0.5641 - val_accuracy: 0.8072 - lr: 0.0089
+Epoch 21/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5573 - accuracy: 0.8034 - val_loss: 0.5992 - val_accuracy: 0.7948 - lr: 0.0100
+Epoch 22/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5623 - accuracy: 0.8012 - val_loss: 0.5818 - val_accuracy: 0.8000 - lr: 0.0112
+Epoch 23/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5681 - accuracy: 0.8018 - val_loss: 0.6432 - val_accuracy: 0.7665 - lr: 0.0126
+Epoch 24/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5839 - accuracy: 0.7956 - val_loss: 0.6225 - val_accuracy: 0.7922 - lr: 0.0141
+Epoch 25/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.5821 - accuracy: 0.7971 - val_loss: 0.6318 - val_accuracy: 0.7912 - lr: 0.0158
+Epoch 26/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5970 - accuracy: 0.7912 - val_loss: 0.7083 - val_accuracy: 0.7788 - lr: 0.0178
+Epoch 27/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.6111 - accuracy: 0.7868 - val_loss: 0.6064 - val_accuracy: 0.7951 - lr: 0.0200
+Epoch 28/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.6223 - accuracy: 0.7827 - val_loss: 0.6182 - val_accuracy: 0.7951 - lr: 0.0224
+Epoch 29/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.6314 - accuracy: 0.7803 - val_loss: 0.6636 - val_accuracy: 0.7610 - lr: 0.0251
+Epoch 30/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.6677 - accuracy: 0.7685 - val_loss: 0.6937 - val_accuracy: 0.7645 - lr: 0.0282
+Epoch 31/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.6753 - accuracy: 0.7641 - val_loss: 0.7067 - val_accuracy: 0.7496 - lr: 0.0316
+Epoch 32/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.7145 - accuracy: 0.7496 - val_loss: 0.7575 - val_accuracy: 0.7574 - lr: 0.0355
+Epoch 33/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.7446 - accuracy: 0.7423 - val_loss: 0.9613 - val_accuracy: 0.7258 - lr: 0.0398
+Epoch 34/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.7802 - accuracy: 0.7347 - val_loss: 0.7900 - val_accuracy: 0.7252 - lr: 0.0447
+Epoch 35/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.8548 - accuracy: 0.7093 - val_loss: 0.7899 - val_accuracy: 0.7363 - lr: 0.0501
+Epoch 36/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.8959 - accuracy: 0.6884 - val_loss: 0.8873 - val_accuracy: 0.6834 - lr: 0.0562
+Epoch 37/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.9306 - accuracy: 0.6789 - val_loss: 0.9930 - val_accuracy: 0.6270 - lr: 0.0631
+Epoch 38/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.9689 - accuracy: 0.6641 - val_loss: 1.0148 - val_accuracy: 0.6223 - lr: 0.0708
+Epoch 39/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.2560 - accuracy: 0.5379 - val_loss: 1.1344 - val_accuracy: 0.6245 - lr: 0.0794
+Epoch 40/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 1.4829 - accuracy: 0.3765 - val_loss: 1.7461 - val_accuracy: 0.1999 - lr: 0.0891
+[ ]
+#plot the decay graph 
+import numpy as np
+import matplotlib.pyplot as plt
+lrs=1e-3 *(10**(tf.range(40)/20))
+plt.semilogx(lrs,lr_history.history["loss"])
+plt.xlabel("learning rate")
+plt.ylabel("loss rate")
+plt.title("learning rate vs the loss rate")
+
+[ ]
+#our learning rate is basically the ideal learning rate of adam
+10**-3
+0.001
+[ ]
+#let set the random seed
+tf.random.set_seed(42)
+
+#build the model
+model_14=tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28,28)),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(4,activation="relu"),
+    tf.keras.layers.Dense(10,activation="softmax")
+])
+
+#compile the model
+model_14.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                 optimizer=tf.keras.optimizers.Adam(),
+                 metrics=["accuracy"])
+
+#finally fit the model
+history_14=model_14.fit(train_data_norm,train_labels,epochs=40,validation_data=(test_data_norm,test_labels))
+Epoch 1/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 1.0348 - accuracy: 0.6474 - val_loss: 0.6937 - val_accuracy: 0.7617
+Epoch 2/40
+1875/1875 [==============================] - 5s 3ms/step - loss: 0.6376 - accuracy: 0.7757 - val_loss: 0.6400 - val_accuracy: 0.7820
+Epoch 3/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5942 - accuracy: 0.7914 - val_loss: 0.6247 - val_accuracy: 0.7783
+Epoch 4/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5750 - accuracy: 0.7979 - val_loss: 0.6078 - val_accuracy: 0.7881
+Epoch 5/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5641 - accuracy: 0.8006 - val_loss: 0.6169 - val_accuracy: 0.7881
+Epoch 6/40
+1875/1875 [==============================] - 6s 3ms/step - loss: 0.5544 - accuracy: 0.8043 - val_loss: 0.5855 - val_accuracy: 0.7951
+Epoch 7/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5488 - accuracy: 0.8063 - val_loss: 0.6097 - val_accuracy: 0.7836
+Epoch 8/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5428 - accuracy: 0.8077 - val_loss: 0.5787 - val_accuracy: 0.7971
+Epoch 9/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5373 - accuracy: 0.8097 - val_loss: 0.5698 - val_accuracy: 0.7977
+Epoch 10/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5360 - accuracy: 0.8124 - val_loss: 0.5658 - val_accuracy: 0.8014
+Epoch 11/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5311 - accuracy: 0.8130 - val_loss: 0.5714 - val_accuracy: 0.8002
+Epoch 12/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5284 - accuracy: 0.8132 - val_loss: 0.5626 - val_accuracy: 0.8027
+Epoch 13/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5271 - accuracy: 0.8138 - val_loss: 0.5619 - val_accuracy: 0.8041
+Epoch 14/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5249 - accuracy: 0.8143 - val_loss: 0.5718 - val_accuracy: 0.7991
+Epoch 15/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5231 - accuracy: 0.8148 - val_loss: 0.5706 - val_accuracy: 0.8024
+Epoch 16/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5203 - accuracy: 0.8162 - val_loss: 0.5731 - val_accuracy: 0.8023
+Epoch 17/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5191 - accuracy: 0.8176 - val_loss: 0.5594 - val_accuracy: 0.8030
+Epoch 18/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5176 - accuracy: 0.8157 - val_loss: 0.5582 - val_accuracy: 0.8053
+Epoch 19/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5156 - accuracy: 0.8169 - val_loss: 0.5644 - val_accuracy: 0.8007
+Epoch 20/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5146 - accuracy: 0.8177 - val_loss: 0.5660 - val_accuracy: 0.8075
+Epoch 21/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5125 - accuracy: 0.8197 - val_loss: 0.5684 - val_accuracy: 0.8004
+Epoch 22/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5112 - accuracy: 0.8180 - val_loss: 0.5666 - val_accuracy: 0.8029
+Epoch 23/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.5105 - accuracy: 0.8195 - val_loss: 0.5570 - val_accuracy: 0.8068
+Epoch 24/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5101 - accuracy: 0.8177 - val_loss: 0.5565 - val_accuracy: 0.8076
+Epoch 25/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5075 - accuracy: 0.8196 - val_loss: 0.5572 - val_accuracy: 0.8048
+Epoch 26/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5081 - accuracy: 0.8192 - val_loss: 0.5658 - val_accuracy: 0.8065
+Epoch 27/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5058 - accuracy: 0.8206 - val_loss: 0.5587 - val_accuracy: 0.8045
+Epoch 28/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5052 - accuracy: 0.8206 - val_loss: 0.5562 - val_accuracy: 0.8077
+Epoch 29/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5050 - accuracy: 0.8205 - val_loss: 0.5664 - val_accuracy: 0.8054
+Epoch 30/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5024 - accuracy: 0.8213 - val_loss: 0.5576 - val_accuracy: 0.8053
+Epoch 31/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5028 - accuracy: 0.8215 - val_loss: 0.5628 - val_accuracy: 0.8035
+Epoch 32/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.5012 - accuracy: 0.8205 - val_loss: 0.5573 - val_accuracy: 0.8095
+Epoch 33/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.4998 - accuracy: 0.8218 - val_loss: 0.5775 - val_accuracy: 0.8006
+Epoch 34/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.4995 - accuracy: 0.8221 - val_loss: 0.5596 - val_accuracy: 0.8072
+Epoch 35/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.4980 - accuracy: 0.8236 - val_loss: 0.5508 - val_accuracy: 0.8093
+Epoch 36/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.4959 - accuracy: 0.8244 - val_loss: 0.5515 - val_accuracy: 0.8066
+Epoch 37/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.4961 - accuracy: 0.8237 - val_loss: 0.5607 - val_accuracy: 0.8003
+Epoch 38/40
+1875/1875 [==============================] - 5s 2ms/step - loss: 0.4947 - accuracy: 0.8251 - val_loss: 0.5455 - val_accuracy: 0.8113
+Epoch 39/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.4943 - accuracy: 0.8242 - val_loss: 0.5594 - val_accuracy: 0.8054
+Epoch 40/40
+1875/1875 [==============================] - 4s 2ms/step - loss: 0.4926 - accuracy: 0.8249 - val_loss: 0.5527 - val_accuracy: 0.8053
+evaluating our multi-class calssification model
+to evaluate our multi-class classification model we could:
+
+evaluate our classification metrics(such as confusion metrics)
+Asset of its prediction(through vizualization)
+Improve its result by training it for longer or chnaging it's architecture
+save and export it for use and application
+Let's us go through the top 2
+
+[ ]
+#create a confusion matrix
+from prompt_toolkit.layout import HorizontalAlign
+#the confusion matrix matrix we are going to write is a remix of sckit-learn confusion_matrix
+
+import itertools
+from sklearn.metrics import confusion_matrix
+
+def make_confusion_matrix(Y_true,Y_pred,classes=None,figsize=(10,10), text_size=15):
+
+  #confusion matrix confusion
+  cm=confusion_matrix(Y_true,Y_pred)
+  cm_norm=cm.astype("float")/cm.sum(axis=1)[:np.newaxis]
+  n_classes=cm.shape[0]
+
+  #let's us prettify it
+  fig,ax=plt.subplots(figsize=figsize)
+  #create a matix plot
+  cax=ax.matshow(cm,cmap=plt.cm.Blues)
+  fig.colorbar(cax)
+
+  #set labels for the classes
+  if classes:
+    labels= classes
+  else:
+    labels=np.arange(cm.shape[0])
+
+  #labels our axis 
+  ax.set(title="confusion matrix",
+        xlabel="predict",
+        ylabel="true_label",
+        xticks=np.arange(n_classes),
+        Yticks=np.arange(n_classes),
+        xticklabels=labels,
+        yticklabels=labels)
+
+  #set x-labels to the bottom
+  ax.xaxis.set_label_position("bottom")
+  ax.xaxis.tick_bottom()
+
+  #Adjust the label size
+  ax.yaxis.label.set_size(text_size)
+  ax.xaxis.label.set_size(text_size)
+  ax.title.set_size(text_size)
+
+  #set the theshold color for the different color 
+  threshold=(cm.max()+cm.max())/2.
+
+  #plot text on our each cell
+  for i,j in itertools.product(range(cm.shape[0]),range(cm.shape[0])):
+    plt.text(i,j,f"{cm[i,j]} ({cm_norm[i,j]*100:.1f}%)",
+            horizontalalignment="center",
+            color="white" if cm[i,j] > threshold else "black",
+            size=text_size)
+
+[ ]
+class_name
+['T-shirt/top',
+ 'trouser',
+ 'pullover',
+ 'Dress',
+ 'coat',
+ 'sandal',
+ 'shirt',
+ 'sneaker',
+ 'bag',
+ 'Ankel boot']
+[ ]
+#make some prediction for our model
+Y_probs=model_14.predict(test_data_norm)
+
+#view the first 4 prediction
+Y_probs[:5]
+313/313 [==============================] - 1s 2ms/step
+array([[1.88361909e-10, 9.28191482e-11, 1.54092995e-05, 5.43358396e-07,
+        1.89941511e-05, 2.89702743e-01, 4.39307009e-08, 4.38077077e-02,
+        4.27454850e-03, 6.62180066e-01],
+       [1.71894699e-05, 4.02383293e-16, 9.06400919e-01, 7.53999586e-07,
+        2.47775782e-02, 3.30341691e-17, 6.83545396e-02, 0.00000000e+00,
+        4.49071464e-04, 1.55225003e-15],
+       [4.27191881e-05, 9.98511672e-01, 1.03824654e-07, 1.42299430e-03,
+        1.52412949e-05, 6.00340264e-22, 7.24052961e-06, 1.13576411e-16,
+        5.22827435e-08, 5.68489049e-12],
+       [4.20100369e-05, 9.96582568e-01, 7.01886449e-07, 3.23580625e-03,
+        1.18159100e-04, 1.90123935e-19, 2.00165869e-05, 4.74159015e-14,
+        6.13936209e-07, 1.09671694e-09],
+       [1.48454547e-01, 2.43307591e-06, 1.32626459e-01, 1.02307713e-02,
+        3.30897234e-02, 4.14846215e-18, 6.75096035e-01, 2.76740124e-29,
+        4.99934249e-04, 1.54012037e-14]], dtype=float32)
+[ ]
+Y_probs[0],tf.argmax(Y_probs[0]),class_name[tf.argmax(Y_probs[0]).numpy()]
+(array([1.8836191e-10, 9.2819148e-11, 1.5409300e-05, 5.4335840e-07,
+        1.8994151e-05, 2.8970274e-01, 4.3930701e-08, 4.3807708e-02,
+        4.2745485e-03, 6.6218007e-01], dtype=float32),
+ <tf.Tensor: shape=(), dtype=int64, numpy=9>,
+ 'Ankel boot')
+[ ]
+#convert all of our prediction in to integer
+Y_pred=Y_probs.argmax(axis=1)
+Y_pred
+array([9, 2, 1, ..., 3, 1, 5])
+[ ]
+test_labels
+array([9, 2, 1, ..., 8, 1, 5], dtype=uint8)
+[ ]
+from sklearn.metrics import confusion_matrix
+confusion_matrix(test_labels,Y_pred) 
+array([[834,  13,  11,  53,   3,   2,  73,   0,  11,   0],
+       [  6, 950,   1,  26,   5,   1,  11,   0,   0,   0],
+       [ 42,   1, 593,   8, 164,   1, 178,   0,  13,   0],
+       [ 74,  27,  10, 787,  35,   1,  56,   2,   8,   0],
+       [  2,   1,  84,  29, 726,   0, 151,   0,   7,   0],
+       [  0,   1,   0,   0,   0, 940,   0,  35,   3,  21],
+       [217,   8, 118,  35,  98,   3, 505,   0,  16,   0],
+       [  0,   0,   0,   0,   0,  70,   0, 903,   0,  27],
+       [ 16,   1,  32,  19,   5,   9,   8,   5, 905,   0],
+       [  0,   0,   0,   0,   1,  36,   0,  48,   5, 910]])
+[ ]
+#prettier confusion matrix
+make_confusion_matrix(Y_true=test_labels,
+                 Y_pred=Y_pred,
+                 classes=class_name,
+                 figsize=(15,15),
+                 text_size=10)
+
+often when working with image forms and other form of visaul data ,it's a good idea to viualiuze as much as possible. to develop idea of data and the inputs and the outputs of your models
+
+how about we create a fun little function for:
+
+plot a random image
+Make a prediction on said image
+Label the plot with truth label and the predicted label
+[ ]
+import random
+def plot_random_image(model,images,true_labels,classes):
+  """
+    picks a random image, plots it and labels it's with a prediction and truth table.. 
+  """
+  #set up random number
+  i= random.randint(0,len(images))
+
+  #create prediction and targets 
+  target_image=images[i]
+  pred_probs=model.predict(target_image.reshape(1,28,28))
+  pred_label=classes[pred_probs.argmax()]
+  true_label=classes[true_labels[i]]
+
+  #plot the image
+  plt.imshow(target_image,cmap=plt.cm.binary)
+
+  #change the color of the titles depending on the prediction is right or wrong
+  if pred_label==true_label:
+    color="green"
+  else:
+    color="red"
+  
+  #add xlabel information (prediction/true label)
+  plt.xlabel("pred: {} {:2.0f}% (True: {})".format(pred_label,100*tf.reduce_max(pred_probs),
+                                                   true_label),
+                                                   color=color) #set the color based on our prediction
+  
+[ ]
+#check out a random image as well as it's prediction 
+plot_random_image(model=model_14,
+                  images=test_data_norm,
+                  true_labels=test_labels,
+                  classes=class_name)
+
+patterns our model is learning
+[ ]
+#find the layers of our recent model
+model_14.layers
+[<keras.layers.reshaping.flatten.Flatten at 0x7fe9cdba5160>,
+ <keras.layers.core.dense.Dense at 0x7fe9cdba5df0>,
+ <keras.layers.core.dense.Dense at 0x7fe9cdba1130>,
+ <keras.layers.core.dense.Dense at 0x7fe9cdba1e80>]
+[ ]
+#extract a particular layer
+model_14.layers[1]
+<keras.layers.core.dense.Dense at 0x7fe9cdba5df0>
+[ ]
+#get the pattern of our network
+weights, biases= model_14.layers[1].get_weights()
+
+#shapes
+weights,weights.shape
+(array([[ 1.5932962 , -0.7686997 , -1.5784506 , -1.9988157 ],
+        [ 0.4566792 , -1.295775  , -0.73220754, -0.16243073],
+        [ 1.3499511 , -0.2002306 , -1.9897628 , -1.2142688 ],
+        ...,
+        [-0.21869269,  0.5934665 , -0.2728189 ,  0.46215102],
+        [-0.2182535 ,  1.1962796 ,  0.54236287, -0.57917625],
+        [ 0.3746476 , -0.19991685,  0.02721495,  0.24650985]],
+       dtype=float32), (784, 4))
+check out the bias vector....
+[ ]
+#bias and biases.shape
+biases,biases.shape
+(array([ 0.33100232, -0.01015139, -0.15789638,  1.2011396 ], dtype=float32),
+ (4,))
+Every neuron has a bias vector . each of these bias vector gets initialize with a weight matrix.
+
+the bias vector are initialized as zeroes.
+
+the bias vector dictates how much the pattern within the corresponding weights matrix should influnce the next layer.
+
+[ ]
+#let us see our tensoflow model
+from tensorflow.keras.utils import plot_model
+plot_model(model_14,show_shapes=True)
+
+Colab paid products - Cancel contracts here
