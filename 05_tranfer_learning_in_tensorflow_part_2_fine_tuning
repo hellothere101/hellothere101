@@ -1,0 +1,2988 @@
+Loading...
+05_tranfer_learning_in_tensorflow_part_2_fine_tuning.ipynb
+05_tranfer_learning_in_tensorflow_part_2_fine_tuning.ipynb_
+Tranfer Learning with Tensorflow part 2: Fine-Tuning
+previous notebook we covered transfer learning with feature extraction, now it's is time to learn a new kind of tranfer learning, fine tuning
+
+[ ]
+!nvidia-smi
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+creating helper function
+In previous notebooks we have created a bunch of helper functions, now we could rewrite them, however it is tedious.
+
+so it's a good idea to put functions you will want to use again in a script you can download and import into your notebook or elsewhere
+
+we have done this for some of the function we have done here https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/extras/helper_functions.py
+
+[ ]
+!wget https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/extras/helper_functions.py
+--2023-01-07 03:59:32--  https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/extras/helper_functions.py
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.110.133, 185.199.111.133, 185.199.108.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.110.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 10246 (10K) [text/plain]
+Saving to: ‘helper_functions.py’
+
+helper_functions.py 100%[===================>]  10.01K  --.-KB/s    in 0s      
+
+2023-01-07 03:59:32 (77.7 MB/s) - ‘helper_functions.py’ saved [10246/10246]
+
+[ ]
+#import helper function we are going to use in this notebook
+from helper_functions import create_tensorboard_callback,plot_loss_curves,unzip_data,walk_through_dir
+let's get some data
+This time we we will see how to use the pretrained models within tf.keras.applications apply them into our own problem recognizing our model (recognizing the image of our model)
+
+[ ]
+#get 10% of training data of 10 classes of training data!
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_10_percent.zip
+unzip_data("10_food_classes_10_percent.zip")
+--2023-01-07 03:59:41--  https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_10_percent.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 142.250.141.128, 142.251.2.128, 2607:f8b0:4023:c0d::80, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|142.250.141.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 168546183 (161M) [application/zip]
+Saving to: ‘10_food_classes_10_percent.zip’
+
+10_food_classes_10_ 100%[===================>] 160.74M   115MB/s    in 1.4s    
+
+2023-01-07 03:59:42 (115 MB/s) - ‘10_food_classes_10_percent.zip’ saved [168546183/168546183]
+
+[ ]
+#check out how many images and subdirectories are there in our datasets
+walk_through_dir("10_food_classes_10_percent")
+There are 2 directories and 0 images in '10_food_classes_10_percent'.
+There are 10 directories and 0 images in '10_food_classes_10_percent/train'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/hamburger'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/steak'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/pizza'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/sushi'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/ice_cream'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/ramen'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/fried_rice'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/grilled_salmon'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/chicken_wings'.
+There are 0 directories and 75 images in '10_food_classes_10_percent/train/chicken_curry'.
+There are 10 directories and 0 images in '10_food_classes_10_percent/test'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/hamburger'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/steak'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/pizza'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/sushi'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/ice_cream'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/ramen'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/fried_rice'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/grilled_salmon'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/chicken_wings'.
+There are 0 directories and 250 images in '10_food_classes_10_percent/test/chicken_curry'.
+[ ]
+#create training and test directories paths 
+train_dir="10_food_classes_10_percent/train"
+test_dir="10_food_classes_10_percent/test"
+[ ]
+import tensorflow as tf
+IMG_SIZE=(224,224)
+BATCH_SIZE=32
+train_data_10_percent=tf.keras.preprocessing.image_dataset_from_directory(directory=train_dir,
+                                                                          image_size=IMG_SIZE,
+                                                                          label_mode="categorical",
+                                                                          batch_size=BATCH_SIZE)
+test_data=tf.keras.preprocessing.image_dataset_from_directory(directory=test_dir,
+                                                                          image_size=IMG_SIZE,
+                                                                          label_mode="categorical",
+                                                                          batch_size=BATCH_SIZE)
+Found 750 files belonging to 10 classes.
+Found 2500 files belonging to 10 classes.
+[ ]
+train_data_10_percent
+<BatchDataset element_spec=(TensorSpec(shape=(None, 224, 224, 3), dtype=tf.float32, name=None), TensorSpec(shape=(None, 10), dtype=tf.float32, name=None))>
+[ ]
+#check out the class name of our datasets 
+train_data_10_percent.class_names
+['chicken_curry',
+ 'chicken_wings',
+ 'fried_rice',
+ 'grilled_salmon',
+ 'hamburger',
+ 'ice_cream',
+ 'pizza',
+ 'ramen',
+ 'steak',
+ 'sushi']
+[ ]
+#see examples of a batch of data
+for images,labels in train_data_10_percent.take(1):
+  print(images,labels)
+tf.Tensor(
+[[[[2.20000000e+01 1.20000000e+01 1.00000000e+01]
+   [2.17142849e+01 1.17142859e+01 9.71428585e+00]
+   [2.30612240e+01 1.18469391e+01 1.02755108e+01]
+   ...
+   [1.38775497e+02 6.77755051e+01 2.53469753e+01]
+   [1.40163300e+02 6.91632919e+01 2.71632957e+01]
+   [1.41800980e+02 6.98009720e+01 2.98009739e+01]]
+
+  [[2.07602024e+01 1.07602043e+01 8.76020432e+00]
+   [1.80714283e+01 8.07142830e+00 6.07142830e+00]
+   [2.36428566e+01 1.24285717e+01 1.08571434e+01]
+   ...
+   [1.32443848e+02 6.14438553e+01 1.94438534e+01]
+   [1.42010223e+02 7.10102158e+01 2.90102196e+01]
+   [1.41454010e+02 7.04540100e+01 2.84540138e+01]]
+
+  [[1.99234695e+01 1.01377554e+01 7.49489784e+00]
+   [2.21428566e+01 1.19285717e+01 9.50000000e+00]
+   [2.35510216e+01 1.14030609e+01 9.78571415e+00]
+   ...
+   [1.33214279e+02 6.02142868e+01 1.92142868e+01]
+   [1.43198944e+02 7.01989517e+01 2.91989498e+01]
+   [1.39295975e+02 6.62959671e+01 2.52959690e+01]]
+
+  ...
+
+  [[1.24296120e+02 7.43674393e+01 4.48672867e+01]
+   [1.25872772e+02 7.41583557e+01 4.42296753e+01]
+   [1.31117538e+02 7.71888580e+01 4.70459137e+01]
+   ...
+   [1.48571472e+02 8.53113022e+01 4.15714722e+01]
+   [1.51239777e+02 8.93520508e+01 4.21836510e+01]
+   [1.51163239e+02 9.07347107e+01 4.09489746e+01]]
+
+  [[1.32122421e+02 7.81938629e+01 4.00509758e+01]
+   [1.36709137e+02 8.07805710e+01 4.36376877e+01]
+   [1.31443817e+02 7.34131927e+01 3.63570633e+01]
+   ...
+   [1.47561203e+02 8.67295990e+01 4.15611992e+01]
+   [1.46489883e+02 8.84898834e+01 3.84898834e+01]
+   [1.50122269e+02 9.31222610e+01 4.01222610e+01]]
+
+  [[1.30770279e+02 7.77702789e+01 3.77702827e+01]
+   [1.30142685e+02 7.71426849e+01 3.71426849e+01]
+   [1.26790756e+02 7.11478958e+01 3.23621826e+01]
+   ...
+   [1.42071350e+02 8.40713501e+01 3.64998779e+01]
+   [1.48306137e+02 9.23775864e+01 4.11632614e+01]
+   [1.46897980e+02 9.18979721e+01 3.78979759e+01]]]
+
+
+ [[[1.63571434e+01 2.73571415e+01 4.85306129e+01]
+   [1.13112230e+01 2.23112240e+01 4.04540787e+01]
+   [9.00000000e+00 2.10000000e+01 3.50000000e+01]
+   ...
+   [2.04234982e+01 3.19949703e+01 5.66377640e+01]
+   [1.19999866e+01 2.50255013e+01 4.18775139e+01]
+   [1.05866871e+01 2.45866871e+01 3.68723335e+01]]
+
+  [[2.15663261e+01 2.89030609e+01 4.90408173e+01]
+   [1.52806110e+01 2.40765305e+01 4.13622398e+01]
+   [1.17142859e+01 2.05153065e+01 3.51173477e+01]
+   ...
+   [1.36989365e+01 2.34999771e+01 5.07856483e+01]
+   [7.06632519e+00 2.00663261e+01 3.89183388e+01]
+   [8.33166504e+00 2.13571777e+01 3.78775482e+01]]
+
+  [[1.28571434e+01 1.74285698e+01 3.67091827e+01]
+   [1.34132652e+01 1.79846935e+01 3.65867348e+01]
+   [1.94744892e+01 2.48316326e+01 4.07091827e+01]
+   ...
+   [5.76527214e+00 1.55969219e+01 4.29336205e+01]
+   [1.20561199e+01 2.21122532e+01 4.69438553e+01]
+   [1.09234972e+01 2.28521023e+01 4.44234276e+01]]
+
+  ...
+
+  [[1.83315411e+01 1.53315411e+01 9.90301323e+00]
+   [2.76326275e+01 2.46326275e+01 1.96326275e+01]
+   [2.34029465e+01 1.94029465e+01 1.64029465e+01]
+   ...
+   [2.23572083e+01 2.03572083e+01 2.13572083e+01]
+   [1.85458298e+01 1.65458298e+01 1.75458298e+01]
+   [1.39232559e+01 1.19232559e+01 1.29232559e+01]]
+
+  [[1.44439325e+01 1.14439325e+01 6.44393206e+00]
+   [2.06633110e+01 1.66633110e+01 1.36633101e+01]
+   [1.71989517e+01 1.31989498e+01 1.01989498e+01]
+   ...
+   [1.93417187e+01 1.53417177e+01 1.63417187e+01]
+   [1.91428833e+01 1.51428833e+01 1.61428833e+01]
+   [1.19487820e+01 7.94878197e+00 8.94878197e+00]]
+
+  [[2.51736183e+01 2.21736183e+01 1.71736183e+01]
+   [2.11783791e+01 1.71783791e+01 1.41783781e+01]
+   [1.24540491e+01 8.45404911e+00 5.45404911e+00]
+   ...
+   [1.71277695e+01 1.31277695e+01 1.41277695e+01]
+   [2.21174583e+01 1.81174583e+01 1.91174583e+01]
+   [1.65407963e+01 1.25407963e+01 1.35407963e+01]]]
+
+
+ [[[6.35714293e+00 1.35714281e+00 0.00000000e+00]
+   [5.00000000e+00 1.00000000e+00 0.00000000e+00]
+   [5.14285660e+00 1.78571415e+00 0.00000000e+00]
+   ...
+   [5.79596806e+00 1.42345536e+00 0.00000000e+00]
+   [1.05714674e+01 6.88783884e-01 0.00000000e+00]
+   [1.63571777e+01 2.00003481e+00 0.00000000e+00]]
+
+  [[6.35714293e+00 1.35714281e+00 0.00000000e+00]
+   [5.00000000e+00 1.00000000e+00 0.00000000e+00]
+   [5.14285660e+00 1.78571415e+00 0.00000000e+00]
+   ...
+   [8.67353153e+00 3.41816425e-01 0.00000000e+00]
+   [1.57806635e+01 2.85727262e-01 5.10297250e-03]
+   [2.18316650e+01 2.47452211e+00 9.18317065e-02]]
+
+  [[6.35714293e+00 1.35714281e+00 0.00000000e+00]
+   [5.00000000e+00 1.00000000e+00 0.00000000e+00]
+   [5.14285660e+00 1.78571415e+00 0.00000000e+00]
+   ...
+   [1.85663986e+01 2.78571415e+00 6.17363930e-01]
+   [2.68724766e+01 3.85715580e+00 1.53060448e+00]
+   [3.22092094e+01 4.78571415e+00 1.56628418e+00]]
+
+  ...
+
+  [[1.78570557e+00 3.21429443e+00 0.00000000e+00]
+   [1.07142830e+00 2.07142830e+00 0.00000000e+00]
+   [1.16836560e+00 1.61733997e+00 0.00000000e+00]
+   ...
+   [1.63572083e+01 3.00000000e+00 1.44897830e+00]
+   [1.82296352e+01 1.58192843e-01 0.00000000e+00]
+   [3.07247372e+01 9.57165527e+00 4.49511433e+00]]
+
+  [[1.00000000e+00 4.00000000e+00 0.00000000e+00]
+   [1.00510073e+00 2.00510073e+00 0.00000000e+00]
+   [1.00000000e+00 1.00000000e+00 0.00000000e+00]
+   ...
+   [1.67551346e+01 2.07141113e+00 1.53008252e-02]
+   [2.10715332e+01 2.00516272e+00 0.00000000e+00]
+   [3.46481743e+01 1.17399845e+01 5.78588867e+00]]
+
+  [[0.00000000e+00 1.35714722e+00 0.00000000e+00]
+   [0.00000000e+00 2.00000000e+00 0.00000000e+00]
+   [1.93367028e+00 1.50509858e+00 1.99489284e+00]
+   ...
+   [1.62908478e+01 4.94887352e-01 0.00000000e+00]
+   [2.35969868e+01 3.33169317e+00 4.59264629e-02]
+   [3.38419189e+01 1.08419209e+01 4.84192038e+00]]]
+
+
+ ...
+
+
+ [[[0.00000000e+00 0.00000000e+00 0.00000000e+00]
+   [0.00000000e+00 0.00000000e+00 0.00000000e+00]
+   [2.57142878e+00 2.57142878e+00 2.57142878e+00]
+   ...
+   [4.58674622e+01 4.58674622e+01 4.64287033e+01]
+   [5.46173553e+01 5.46173553e+01 5.66173553e+01]
+   [5.55714645e+01 5.55714645e+01 5.75714645e+01]]
+
+  [[1.00000000e+00 1.00000000e+00 1.00000000e+00]
+   [1.00000000e+00 1.00000000e+00 1.00000000e+00]
+   [3.19897962e+00 3.19897962e+00 3.19897962e+00]
+   ...
+   [4.95153694e+01 4.95153694e+01 5.11174507e+01]
+   [5.31428566e+01 5.31428566e+01 5.51428566e+01]
+   [5.42397995e+01 5.42397995e+01 5.62397995e+01]]
+
+  [[1.00000000e+00 1.00000000e+00 1.00000000e+00]
+   [1.00000000e+00 1.00000000e+00 1.00000000e+00]
+   [2.38265324e+00 2.38265324e+00 2.38265324e+00]
+   ...
+   [5.15714722e+01 5.15714722e+01 5.35714722e+01]
+   [5.42704201e+01 5.34847031e+01 5.78418465e+01]
+   [5.73571777e+01 5.65714645e+01 6.09286041e+01]]
+
+  ...
+
+  [[1.88494873e+02 1.90494873e+02 1.87494873e+02]
+   [1.88857132e+02 1.90857132e+02 1.87857132e+02]
+   [1.87999985e+02 1.89999985e+02 1.88999985e+02]
+   ...
+   [1.58999969e+02 1.59999969e+02 1.63999969e+02]
+   [1.60000000e+02 1.61000000e+02 1.65000000e+02]
+   [1.57285645e+02 1.58285645e+02 1.62285645e+02]]
+
+  [[1.85714264e+02 1.87714264e+02 1.84714264e+02]
+   [1.87142838e+02 1.89142838e+02 1.86142838e+02]
+   [1.86683655e+02 1.88683655e+02 1.87683655e+02]
+   ...
+   [1.57285675e+02 1.58285675e+02 1.62285675e+02]
+   [1.59071411e+02 1.60071411e+02 1.64071411e+02]
+   [1.57285645e+02 1.58285645e+02 1.62285645e+02]]
+
+  [[1.86056122e+02 1.88056122e+02 1.85056122e+02]
+   [1.87071426e+02 1.89071426e+02 1.86071426e+02]
+   [1.88637756e+02 1.90637756e+02 1.89637756e+02]
+   ...
+   [1.56076523e+02 1.57076523e+02 1.61076523e+02]
+   [1.56357147e+02 1.57357147e+02 1.61357147e+02]
+   [1.57000000e+02 1.58000000e+02 1.62000000e+02]]]
+
+
+ [[[2.92857146e+00 1.91581631e+01 3.51581612e+01]
+   [0.00000000e+00 1.56173468e+01 3.15714283e+01]
+   [0.00000000e+00 1.71377544e+01 3.22142830e+01]
+   ...
+   [1.09214272e+02 1.22214272e+02 9.37856827e+01]
+   [1.09765343e+02 1.22765343e+02 9.27653427e+01]
+   [1.04540840e+02 1.17540840e+02 8.75408401e+01]]
+
+  [[1.76020360e+00 1.94234695e+01 3.50918350e+01]
+   [9.28571463e-01 1.99948978e+01 3.49948997e+01]
+   [1.51530600e+00 2.33010216e+01 3.73724480e+01]
+   ...
+   [1.13714287e+02 1.26714287e+02 9.82856979e+01]
+   [1.17362312e+02 1.30362320e+02 1.00362312e+02]
+   [1.19433678e+02 1.32433670e+02 1.02433678e+02]]
+
+  [[2.75510371e-01 2.27193890e+01 3.66428566e+01]
+   [2.27040815e+00 2.48010197e+01 3.83571434e+01]
+   [4.57142830e+00 2.84285717e+01 4.17857132e+01]
+   ...
+   [1.26377563e+02 1.39285721e+02 1.10857155e+02]
+   [1.30086777e+02 1.42658218e+02 1.14229637e+02]
+   [1.35428558e+02 1.47999985e+02 1.17999985e+02]]
+
+  ...
+
+  [[1.08113384e+01 4.42959900e+01 3.85868416e+01]
+   [5.95915890e+00 4.09591599e+01 3.47448959e+01]
+   [5.61729813e+00 3.84285049e+01 3.28316040e+01]
+   ...
+   [0.00000000e+00 0.00000000e+00 2.02142639e+01]
+   [0.00000000e+00 0.00000000e+00 2.02142639e+01]
+   [0.00000000e+00 0.00000000e+00 1.92142639e+01]]
+
+  [[6.04591322e+00 4.10255051e+01 3.71632843e+01]
+   [9.15307617e+00 4.42908440e+01 4.02908440e+01]
+   [1.33571815e+01 4.86276016e+01 4.46276016e+01]
+   ...
+   [0.00000000e+00 8.01015139e-01 1.63979702e+01]
+   [0.00000000e+00 9.33690608e-01 1.61326180e+01]
+   [0.00000000e+00 0.00000000e+00 1.56632643e+01]]
+
+  [[8.15815067e+00 4.59184227e+01 4.48725052e+01]
+   [4.49975586e+00 4.41630859e+01 4.08059082e+01]
+   [7.08133316e+00 4.60813332e+01 4.14333649e+01]
+   ...
+   [1.00000000e+00 0.00000000e+00 1.40000000e+01]
+   [1.00000000e+00 0.00000000e+00 1.40000000e+01]
+   [0.00000000e+00 0.00000000e+00 1.30000000e+01]]]
+
+
+ [[[8.00000000e+00 8.64285755e+00 0.00000000e+00]
+   [1.00459185e+01 9.97449017e+00 0.00000000e+00]
+   [1.15765305e+01 9.08163261e+00 3.57142866e-01]
+   ...
+   [6.57704773e+01 6.17704735e+01 6.00460014e+01]
+   [6.62143631e+01 6.48572235e+01 6.39286499e+01]
+   [7.03415375e+01 6.83415375e+01 7.00558243e+01]]
+
+  [[8.50000000e+00 5.50000000e+00 0.00000000e+00]
+   [1.07857151e+01 7.78571463e+00 9.28571701e-01]
+   [1.30000000e+01 9.77040863e+00 2.49999976e+00]
+   ...
+   [7.51582947e+01 7.01429901e+01 7.58624115e+01]
+   [7.44286270e+01 7.23571930e+01 7.75000534e+01]
+   [7.62140045e+01 7.41425781e+01 7.92854385e+01]]
+
+  [[7.70918369e+00 3.13775516e+00 0.00000000e+00]
+   [8.92857170e+00 4.35714340e+00 1.98979795e-01]
+   [9.26020432e+00 4.59693909e+00 3.36734891e-01]
+   ...
+   [8.36225204e+01 7.77908936e+01 8.88572083e+01]
+   [7.78010635e+01 7.48010635e+01 8.33724899e+01]
+   [7.76476517e+01 7.46476517e+01 8.16476517e+01]]
+
+  ...
+
+  [[2.14294434e-01 2.21429443e+00 0.00000000e+00]
+   [1.53066870e-02 2.01530671e+00 0.00000000e+00]
+   [1.73978531e+00 1.83162582e+00 4.59202640e-02]
+   ...
+   [7.08722839e+01 5.90405388e+01 6.26116753e+01]
+   [7.16276627e+01 5.34847832e+01 3.71325569e+01]
+   [7.01375122e+01 5.05048256e+01 1.92955379e+01]]
+
+  [[1.00000000e+00 3.00000000e+00 0.00000000e+00]
+   [9.33689654e-01 2.93368959e+00 0.00000000e+00]
+   [5.61087132e-02 1.74490786e+00 7.44907796e-01]
+   ...
+   [7.09032059e+01 5.61480675e+01 3.97344131e+01]
+   [7.70153351e+01 5.99337196e+01 3.22039986e+01]
+   [7.63059235e+01 5.71886063e+01 2.70661812e+01]]
+
+  [[1.27552554e-01 1.48469985e+00 0.00000000e+00]
+   [0.00000000e+00 2.00000000e+00 0.00000000e+00]
+   [5.05098522e-01 2.06122255e+00 3.08162165e+00]
+   ...
+   [7.77959595e+01 6.22143250e+01 2.93009529e+01]
+   [7.93367386e+01 6.35765152e+01 3.33112831e+01]
+   [7.47548523e+01 5.90405312e+01 3.99130859e+01]]]], shape=(32, 224, 224, 3), dtype=float32) tf.Tensor(
+[[0. 0. 0. 0. 0. 1. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]
+ [0. 0. 0. 0. 0. 0. 1. 0. 0. 0.]
+ [0. 0. 1. 0. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]
+ [0. 0. 1. 0. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]
+ [0. 0. 0. 1. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 1. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]
+ [0. 0. 0. 0. 1. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 0. 1. 0.]
+ [0. 0. 0. 0. 0. 1. 0. 0. 0. 0.]
+ [0. 1. 0. 0. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 1. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]
+ [0. 0. 0. 0. 1. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 0. 1. 0.]
+ [0. 0. 0. 0. 0. 0. 1. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 0. 1. 0.]
+ [0. 0. 1. 0. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 1. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 1. 0. 0. 0. 0.]
+ [0. 1. 0. 0. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 1. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]
+ [0. 0. 1. 0. 0. 0. 0. 0. 0. 0.]
+ [1. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 0. 0. 0. 0. 0. 1. 0.]
+ [0. 1. 0. 0. 0. 0. 0. 0. 0. 0.]
+ [0. 0. 0. 1. 0. 0. 0. 0. 0. 0.]], shape=(32, 10), dtype=float32)
+Model 0:Building a Transfer learning model using keras functional API
+Sequential is always straight forward in nature.
+
+where as functional API provide more flexibility.
+
+[ ]
+#1. create a base model with tf.keras.application
+base_model=tf.keras.applications.EfficientNetB0(include_top=False)
+
+#2. Freeze the base model(so the underlying patterns are not updated during base training)
+base_model.trainable=False
+
+#3. create inputs into our model
+input = tf.keras.layers.Input(shape=(224,224,3),name="input_layer")
+
+#4. If you are using ResNet50v2 you will need to normalize the input(you do not have to for the efficient net)
+#x=tf.keras.layers.experimental.preprocessing.Rescaling(1./255)(input)
+
+#5. pass the inputs to the base model
+x=base_model(input)
+print(f"shape after passing inputs through base models: {x.shape}")
+
+#6. average pool of the outputs of the base models(aggreate all the important information, reduce all the computation)
+x=tf.keras.layers.GlobalAveragePooling2D(name="Global_average_pooling_layer")(x)
+print(f"shape after Global average pooling 2D: {x.shape}")
+
+#7. create the output activation layers
+outputs=tf.keras.layers.Dense(10,activation="softmax",name="output_layers")(x)
+
+#8. combine the model with the output into a model
+model_0=tf.keras.Model(input,outputs)
+
+#9. compile our model
+model_0.compile(loss="categorical_crossentropy",
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+#10 .Fit the model
+history_10_percent=model_0.fit(train_data_10_percent,
+                               epochs=5,
+                               steps_per_epoch=len(train_data_10_percent),
+                               validation_data=test_data,
+                               validation_steps=int(0.25*len(test_data)),
+                               callbacks=[create_tensorboard_callback(dir_name="transfer_learning",
+                                                                     experiment_name="10_percent_feature_extraction")])
+Downloading data from https://storage.googleapis.com/keras-applications/efficientnetb0_notop.h5
+16705208/16705208 [==============================] - 0s 0us/step
+shape after passing inputs through base models: (None, 7, 7, 1280)
+shape after Global average pooling 2D: (None, 1280)
+Saving TensorBoard log files to: transfer_learning/10_percent_feature_extraction/20230107-035952
+Epoch 1/5
+24/24 [==============================] - 97s 4s/step - loss: 1.8667 - accuracy: 0.4187 - val_loss: 1.3262 - val_accuracy: 0.6842
+Epoch 2/5
+24/24 [==============================] - 86s 4s/step - loss: 1.0828 - accuracy: 0.7613 - val_loss: 0.9073 - val_accuracy: 0.7944
+Epoch 3/5
+24/24 [==============================] - 88s 4s/step - loss: 0.7815 - accuracy: 0.8293 - val_loss: 0.7369 - val_accuracy: 0.8026
+Epoch 4/5
+24/24 [==============================] - 85s 4s/step - loss: 0.6287 - accuracy: 0.8573 - val_loss: 0.6403 - val_accuracy: 0.8306
+Epoch 5/5
+24/24 [==============================] - 92s 4s/step - loss: 0.5371 - accuracy: 0.8773 - val_loss: 0.5920 - val_accuracy: 0.8372
+[ ]
+#evaluate our data
+model_0.evaluate(test_data)
+79/79 [==============================] - 153s 2s/step - loss: 0.5566 - accuracy: 0.8592
+[0.5565840005874634, 0.8592000007629395]
+[ ]
+#let's check the layer in the base model
+for layer_number,layer in enumerate(base_model.layers):
+  print(layer_number,layer.name)
+0 input_1
+1 rescaling
+2 normalization
+3 tf.math.truediv
+4 stem_conv_pad
+5 stem_conv
+6 stem_bn
+7 stem_activation
+8 block1a_dwconv
+9 block1a_bn
+10 block1a_activation
+11 block1a_se_squeeze
+12 block1a_se_reshape
+13 block1a_se_reduce
+14 block1a_se_expand
+15 block1a_se_excite
+16 block1a_project_conv
+17 block1a_project_bn
+18 block2a_expand_conv
+19 block2a_expand_bn
+20 block2a_expand_activation
+21 block2a_dwconv_pad
+22 block2a_dwconv
+23 block2a_bn
+24 block2a_activation
+25 block2a_se_squeeze
+26 block2a_se_reshape
+27 block2a_se_reduce
+28 block2a_se_expand
+29 block2a_se_excite
+30 block2a_project_conv
+31 block2a_project_bn
+32 block2b_expand_conv
+33 block2b_expand_bn
+34 block2b_expand_activation
+35 block2b_dwconv
+36 block2b_bn
+37 block2b_activation
+38 block2b_se_squeeze
+39 block2b_se_reshape
+40 block2b_se_reduce
+41 block2b_se_expand
+42 block2b_se_excite
+43 block2b_project_conv
+44 block2b_project_bn
+45 block2b_drop
+46 block2b_add
+47 block3a_expand_conv
+48 block3a_expand_bn
+49 block3a_expand_activation
+50 block3a_dwconv_pad
+51 block3a_dwconv
+52 block3a_bn
+53 block3a_activation
+54 block3a_se_squeeze
+55 block3a_se_reshape
+56 block3a_se_reduce
+57 block3a_se_expand
+58 block3a_se_excite
+59 block3a_project_conv
+60 block3a_project_bn
+61 block3b_expand_conv
+62 block3b_expand_bn
+63 block3b_expand_activation
+64 block3b_dwconv
+65 block3b_bn
+66 block3b_activation
+67 block3b_se_squeeze
+68 block3b_se_reshape
+69 block3b_se_reduce
+70 block3b_se_expand
+71 block3b_se_excite
+72 block3b_project_conv
+73 block3b_project_bn
+74 block3b_drop
+75 block3b_add
+76 block4a_expand_conv
+77 block4a_expand_bn
+78 block4a_expand_activation
+79 block4a_dwconv_pad
+80 block4a_dwconv
+81 block4a_bn
+82 block4a_activation
+83 block4a_se_squeeze
+84 block4a_se_reshape
+85 block4a_se_reduce
+86 block4a_se_expand
+87 block4a_se_excite
+88 block4a_project_conv
+89 block4a_project_bn
+90 block4b_expand_conv
+91 block4b_expand_bn
+92 block4b_expand_activation
+93 block4b_dwconv
+94 block4b_bn
+95 block4b_activation
+96 block4b_se_squeeze
+97 block4b_se_reshape
+98 block4b_se_reduce
+99 block4b_se_expand
+100 block4b_se_excite
+101 block4b_project_conv
+102 block4b_project_bn
+103 block4b_drop
+104 block4b_add
+105 block4c_expand_conv
+106 block4c_expand_bn
+107 block4c_expand_activation
+108 block4c_dwconv
+109 block4c_bn
+110 block4c_activation
+111 block4c_se_squeeze
+112 block4c_se_reshape
+113 block4c_se_reduce
+114 block4c_se_expand
+115 block4c_se_excite
+116 block4c_project_conv
+117 block4c_project_bn
+118 block4c_drop
+119 block4c_add
+120 block5a_expand_conv
+121 block5a_expand_bn
+122 block5a_expand_activation
+123 block5a_dwconv
+124 block5a_bn
+125 block5a_activation
+126 block5a_se_squeeze
+127 block5a_se_reshape
+128 block5a_se_reduce
+129 block5a_se_expand
+130 block5a_se_excite
+131 block5a_project_conv
+132 block5a_project_bn
+133 block5b_expand_conv
+134 block5b_expand_bn
+135 block5b_expand_activation
+136 block5b_dwconv
+137 block5b_bn
+138 block5b_activation
+139 block5b_se_squeeze
+140 block5b_se_reshape
+141 block5b_se_reduce
+142 block5b_se_expand
+143 block5b_se_excite
+144 block5b_project_conv
+145 block5b_project_bn
+146 block5b_drop
+147 block5b_add
+148 block5c_expand_conv
+149 block5c_expand_bn
+150 block5c_expand_activation
+151 block5c_dwconv
+152 block5c_bn
+153 block5c_activation
+154 block5c_se_squeeze
+155 block5c_se_reshape
+156 block5c_se_reduce
+157 block5c_se_expand
+158 block5c_se_excite
+159 block5c_project_conv
+160 block5c_project_bn
+161 block5c_drop
+162 block5c_add
+163 block6a_expand_conv
+164 block6a_expand_bn
+165 block6a_expand_activation
+166 block6a_dwconv_pad
+167 block6a_dwconv
+168 block6a_bn
+169 block6a_activation
+170 block6a_se_squeeze
+171 block6a_se_reshape
+172 block6a_se_reduce
+173 block6a_se_expand
+174 block6a_se_excite
+175 block6a_project_conv
+176 block6a_project_bn
+177 block6b_expand_conv
+178 block6b_expand_bn
+179 block6b_expand_activation
+180 block6b_dwconv
+181 block6b_bn
+182 block6b_activation
+183 block6b_se_squeeze
+184 block6b_se_reshape
+185 block6b_se_reduce
+186 block6b_se_expand
+187 block6b_se_excite
+188 block6b_project_conv
+189 block6b_project_bn
+190 block6b_drop
+191 block6b_add
+192 block6c_expand_conv
+193 block6c_expand_bn
+194 block6c_expand_activation
+195 block6c_dwconv
+196 block6c_bn
+197 block6c_activation
+198 block6c_se_squeeze
+199 block6c_se_reshape
+200 block6c_se_reduce
+201 block6c_se_expand
+202 block6c_se_excite
+203 block6c_project_conv
+204 block6c_project_bn
+205 block6c_drop
+206 block6c_add
+207 block6d_expand_conv
+208 block6d_expand_bn
+209 block6d_expand_activation
+210 block6d_dwconv
+211 block6d_bn
+212 block6d_activation
+213 block6d_se_squeeze
+214 block6d_se_reshape
+215 block6d_se_reduce
+216 block6d_se_expand
+217 block6d_se_excite
+218 block6d_project_conv
+219 block6d_project_bn
+220 block6d_drop
+221 block6d_add
+222 block7a_expand_conv
+223 block7a_expand_bn
+224 block7a_expand_activation
+225 block7a_dwconv
+226 block7a_bn
+227 block7a_activation
+228 block7a_se_squeeze
+229 block7a_se_reshape
+230 block7a_se_reduce
+231 block7a_se_expand
+232 block7a_se_excite
+233 block7a_project_conv
+234 block7a_project_bn
+235 top_conv
+236 top_bn
+237 top_activation
+[ ]
+#how about get the summary of the base model
+base_model.summary()
+Model: "efficientnetb0"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ input_1 (InputLayer)           [(None, None, None,  0           []                               
+                                 3)]                                                              
+                                                                                                  
+ rescaling (Rescaling)          (None, None, None,   0           ['input_1[0][0]']                
+                                3)                                                                
+                                                                                                  
+ normalization (Normalization)  (None, None, None,   7           ['rescaling[0][0]']              
+                                3)                                                                
+                                                                                                  
+ tf.math.truediv (TFOpLambda)   (None, None, None,   0           ['normalization[0][0]']          
+                                3)                                                                
+                                                                                                  
+ stem_conv_pad (ZeroPadding2D)  (None, None, None,   0           ['tf.math.truediv[0][0]']        
+                                3)                                                                
+                                                                                                  
+ stem_conv (Conv2D)             (None, None, None,   864         ['stem_conv_pad[0][0]']          
+                                32)                                                               
+                                                                                                  
+ stem_bn (BatchNormalization)   (None, None, None,   128         ['stem_conv[0][0]']              
+                                32)                                                               
+                                                                                                  
+ stem_activation (Activation)   (None, None, None,   0           ['stem_bn[0][0]']                
+                                32)                                                               
+                                                                                                  
+ block1a_dwconv (DepthwiseConv2  (None, None, None,   288        ['stem_activation[0][0]']        
+ D)                             32)                                                               
+                                                                                                  
+ block1a_bn (BatchNormalization  (None, None, None,   128        ['block1a_dwconv[0][0]']         
+ )                              32)                                                               
+                                                                                                  
+ block1a_activation (Activation  (None, None, None,   0          ['block1a_bn[0][0]']             
+ )                              32)                                                               
+                                                                                                  
+ block1a_se_squeeze (GlobalAver  (None, 32)          0           ['block1a_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block1a_se_reshape (Reshape)   (None, 1, 1, 32)     0           ['block1a_se_squeeze[0][0]']     
+                                                                                                  
+ block1a_se_reduce (Conv2D)     (None, 1, 1, 8)      264         ['block1a_se_reshape[0][0]']     
+                                                                                                  
+ block1a_se_expand (Conv2D)     (None, 1, 1, 32)     288         ['block1a_se_reduce[0][0]']      
+                                                                                                  
+ block1a_se_excite (Multiply)   (None, None, None,   0           ['block1a_activation[0][0]',     
+                                32)                               'block1a_se_expand[0][0]']      
+                                                                                                  
+ block1a_project_conv (Conv2D)  (None, None, None,   512         ['block1a_se_excite[0][0]']      
+                                16)                                                               
+                                                                                                  
+ block1a_project_bn (BatchNorma  (None, None, None,   64         ['block1a_project_conv[0][0]']   
+ lization)                      16)                                                               
+                                                                                                  
+ block2a_expand_conv (Conv2D)   (None, None, None,   1536        ['block1a_project_bn[0][0]']     
+                                96)                                                               
+                                                                                                  
+ block2a_expand_bn (BatchNormal  (None, None, None,   384        ['block2a_expand_conv[0][0]']    
+ ization)                       96)                                                               
+                                                                                                  
+ block2a_expand_activation (Act  (None, None, None,   0          ['block2a_expand_bn[0][0]']      
+ ivation)                       96)                                                               
+                                                                                                  
+ block2a_dwconv_pad (ZeroPaddin  (None, None, None,   0          ['block2a_expand_activation[0][0]
+ g2D)                           96)                              ']                               
+                                                                                                  
+ block2a_dwconv (DepthwiseConv2  (None, None, None,   864        ['block2a_dwconv_pad[0][0]']     
+ D)                             96)                                                               
+                                                                                                  
+ block2a_bn (BatchNormalization  (None, None, None,   384        ['block2a_dwconv[0][0]']         
+ )                              96)                                                               
+                                                                                                  
+ block2a_activation (Activation  (None, None, None,   0          ['block2a_bn[0][0]']             
+ )                              96)                                                               
+                                                                                                  
+ block2a_se_squeeze (GlobalAver  (None, 96)          0           ['block2a_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block2a_se_reshape (Reshape)   (None, 1, 1, 96)     0           ['block2a_se_squeeze[0][0]']     
+                                                                                                  
+ block2a_se_reduce (Conv2D)     (None, 1, 1, 4)      388         ['block2a_se_reshape[0][0]']     
+                                                                                                  
+ block2a_se_expand (Conv2D)     (None, 1, 1, 96)     480         ['block2a_se_reduce[0][0]']      
+                                                                                                  
+ block2a_se_excite (Multiply)   (None, None, None,   0           ['block2a_activation[0][0]',     
+                                96)                               'block2a_se_expand[0][0]']      
+                                                                                                  
+ block2a_project_conv (Conv2D)  (None, None, None,   2304        ['block2a_se_excite[0][0]']      
+                                24)                                                               
+                                                                                                  
+ block2a_project_bn (BatchNorma  (None, None, None,   96         ['block2a_project_conv[0][0]']   
+ lization)                      24)                                                               
+                                                                                                  
+ block2b_expand_conv (Conv2D)   (None, None, None,   3456        ['block2a_project_bn[0][0]']     
+                                144)                                                              
+                                                                                                  
+ block2b_expand_bn (BatchNormal  (None, None, None,   576        ['block2b_expand_conv[0][0]']    
+ ization)                       144)                                                              
+                                                                                                  
+ block2b_expand_activation (Act  (None, None, None,   0          ['block2b_expand_bn[0][0]']      
+ ivation)                       144)                                                              
+                                                                                                  
+ block2b_dwconv (DepthwiseConv2  (None, None, None,   1296       ['block2b_expand_activation[0][0]
+ D)                             144)                             ']                               
+                                                                                                  
+ block2b_bn (BatchNormalization  (None, None, None,   576        ['block2b_dwconv[0][0]']         
+ )                              144)                                                              
+                                                                                                  
+ block2b_activation (Activation  (None, None, None,   0          ['block2b_bn[0][0]']             
+ )                              144)                                                              
+                                                                                                  
+ block2b_se_squeeze (GlobalAver  (None, 144)         0           ['block2b_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block2b_se_reshape (Reshape)   (None, 1, 1, 144)    0           ['block2b_se_squeeze[0][0]']     
+                                                                                                  
+ block2b_se_reduce (Conv2D)     (None, 1, 1, 6)      870         ['block2b_se_reshape[0][0]']     
+                                                                                                  
+ block2b_se_expand (Conv2D)     (None, 1, 1, 144)    1008        ['block2b_se_reduce[0][0]']      
+                                                                                                  
+ block2b_se_excite (Multiply)   (None, None, None,   0           ['block2b_activation[0][0]',     
+                                144)                              'block2b_se_expand[0][0]']      
+                                                                                                  
+ block2b_project_conv (Conv2D)  (None, None, None,   3456        ['block2b_se_excite[0][0]']      
+                                24)                                                               
+                                                                                                  
+ block2b_project_bn (BatchNorma  (None, None, None,   96         ['block2b_project_conv[0][0]']   
+ lization)                      24)                                                               
+                                                                                                  
+ block2b_drop (Dropout)         (None, None, None,   0           ['block2b_project_bn[0][0]']     
+                                24)                                                               
+                                                                                                  
+ block2b_add (Add)              (None, None, None,   0           ['block2b_drop[0][0]',           
+                                24)                               'block2a_project_bn[0][0]']     
+                                                                                                  
+ block3a_expand_conv (Conv2D)   (None, None, None,   3456        ['block2b_add[0][0]']            
+                                144)                                                              
+                                                                                                  
+ block3a_expand_bn (BatchNormal  (None, None, None,   576        ['block3a_expand_conv[0][0]']    
+ ization)                       144)                                                              
+                                                                                                  
+ block3a_expand_activation (Act  (None, None, None,   0          ['block3a_expand_bn[0][0]']      
+ ivation)                       144)                                                              
+                                                                                                  
+ block3a_dwconv_pad (ZeroPaddin  (None, None, None,   0          ['block3a_expand_activation[0][0]
+ g2D)                           144)                             ']                               
+                                                                                                  
+ block3a_dwconv (DepthwiseConv2  (None, None, None,   3600       ['block3a_dwconv_pad[0][0]']     
+ D)                             144)                                                              
+                                                                                                  
+ block3a_bn (BatchNormalization  (None, None, None,   576        ['block3a_dwconv[0][0]']         
+ )                              144)                                                              
+                                                                                                  
+ block3a_activation (Activation  (None, None, None,   0          ['block3a_bn[0][0]']             
+ )                              144)                                                              
+                                                                                                  
+ block3a_se_squeeze (GlobalAver  (None, 144)         0           ['block3a_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block3a_se_reshape (Reshape)   (None, 1, 1, 144)    0           ['block3a_se_squeeze[0][0]']     
+                                                                                                  
+ block3a_se_reduce (Conv2D)     (None, 1, 1, 6)      870         ['block3a_se_reshape[0][0]']     
+                                                                                                  
+ block3a_se_expand (Conv2D)     (None, 1, 1, 144)    1008        ['block3a_se_reduce[0][0]']      
+                                                                                                  
+ block3a_se_excite (Multiply)   (None, None, None,   0           ['block3a_activation[0][0]',     
+                                144)                              'block3a_se_expand[0][0]']      
+                                                                                                  
+ block3a_project_conv (Conv2D)  (None, None, None,   5760        ['block3a_se_excite[0][0]']      
+                                40)                                                               
+                                                                                                  
+ block3a_project_bn (BatchNorma  (None, None, None,   160        ['block3a_project_conv[0][0]']   
+ lization)                      40)                                                               
+                                                                                                  
+ block3b_expand_conv (Conv2D)   (None, None, None,   9600        ['block3a_project_bn[0][0]']     
+                                240)                                                              
+                                                                                                  
+ block3b_expand_bn (BatchNormal  (None, None, None,   960        ['block3b_expand_conv[0][0]']    
+ ization)                       240)                                                              
+                                                                                                  
+ block3b_expand_activation (Act  (None, None, None,   0          ['block3b_expand_bn[0][0]']      
+ ivation)                       240)                                                              
+                                                                                                  
+ block3b_dwconv (DepthwiseConv2  (None, None, None,   6000       ['block3b_expand_activation[0][0]
+ D)                             240)                             ']                               
+                                                                                                  
+ block3b_bn (BatchNormalization  (None, None, None,   960        ['block3b_dwconv[0][0]']         
+ )                              240)                                                              
+                                                                                                  
+ block3b_activation (Activation  (None, None, None,   0          ['block3b_bn[0][0]']             
+ )                              240)                                                              
+                                                                                                  
+ block3b_se_squeeze (GlobalAver  (None, 240)         0           ['block3b_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block3b_se_reshape (Reshape)   (None, 1, 1, 240)    0           ['block3b_se_squeeze[0][0]']     
+                                                                                                  
+ block3b_se_reduce (Conv2D)     (None, 1, 1, 10)     2410        ['block3b_se_reshape[0][0]']     
+                                                                                                  
+ block3b_se_expand (Conv2D)     (None, 1, 1, 240)    2640        ['block3b_se_reduce[0][0]']      
+                                                                                                  
+ block3b_se_excite (Multiply)   (None, None, None,   0           ['block3b_activation[0][0]',     
+                                240)                              'block3b_se_expand[0][0]']      
+                                                                                                  
+ block3b_project_conv (Conv2D)  (None, None, None,   9600        ['block3b_se_excite[0][0]']      
+                                40)                                                               
+                                                                                                  
+ block3b_project_bn (BatchNorma  (None, None, None,   160        ['block3b_project_conv[0][0]']   
+ lization)                      40)                                                               
+                                                                                                  
+ block3b_drop (Dropout)         (None, None, None,   0           ['block3b_project_bn[0][0]']     
+                                40)                                                               
+                                                                                                  
+ block3b_add (Add)              (None, None, None,   0           ['block3b_drop[0][0]',           
+                                40)                               'block3a_project_bn[0][0]']     
+                                                                                                  
+ block4a_expand_conv (Conv2D)   (None, None, None,   9600        ['block3b_add[0][0]']            
+                                240)                                                              
+                                                                                                  
+ block4a_expand_bn (BatchNormal  (None, None, None,   960        ['block4a_expand_conv[0][0]']    
+ ization)                       240)                                                              
+                                                                                                  
+ block4a_expand_activation (Act  (None, None, None,   0          ['block4a_expand_bn[0][0]']      
+ ivation)                       240)                                                              
+                                                                                                  
+ block4a_dwconv_pad (ZeroPaddin  (None, None, None,   0          ['block4a_expand_activation[0][0]
+ g2D)                           240)                             ']                               
+                                                                                                  
+ block4a_dwconv (DepthwiseConv2  (None, None, None,   2160       ['block4a_dwconv_pad[0][0]']     
+ D)                             240)                                                              
+                                                                                                  
+ block4a_bn (BatchNormalization  (None, None, None,   960        ['block4a_dwconv[0][0]']         
+ )                              240)                                                              
+                                                                                                  
+ block4a_activation (Activation  (None, None, None,   0          ['block4a_bn[0][0]']             
+ )                              240)                                                              
+                                                                                                  
+ block4a_se_squeeze (GlobalAver  (None, 240)         0           ['block4a_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block4a_se_reshape (Reshape)   (None, 1, 1, 240)    0           ['block4a_se_squeeze[0][0]']     
+                                                                                                  
+ block4a_se_reduce (Conv2D)     (None, 1, 1, 10)     2410        ['block4a_se_reshape[0][0]']     
+                                                                                                  
+ block4a_se_expand (Conv2D)     (None, 1, 1, 240)    2640        ['block4a_se_reduce[0][0]']      
+                                                                                                  
+ block4a_se_excite (Multiply)   (None, None, None,   0           ['block4a_activation[0][0]',     
+                                240)                              'block4a_se_expand[0][0]']      
+                                                                                                  
+ block4a_project_conv (Conv2D)  (None, None, None,   19200       ['block4a_se_excite[0][0]']      
+                                80)                                                               
+                                                                                                  
+ block4a_project_bn (BatchNorma  (None, None, None,   320        ['block4a_project_conv[0][0]']   
+ lization)                      80)                                                               
+                                                                                                  
+ block4b_expand_conv (Conv2D)   (None, None, None,   38400       ['block4a_project_bn[0][0]']     
+                                480)                                                              
+                                                                                                  
+ block4b_expand_bn (BatchNormal  (None, None, None,   1920       ['block4b_expand_conv[0][0]']    
+ ization)                       480)                                                              
+                                                                                                  
+ block4b_expand_activation (Act  (None, None, None,   0          ['block4b_expand_bn[0][0]']      
+ ivation)                       480)                                                              
+                                                                                                  
+ block4b_dwconv (DepthwiseConv2  (None, None, None,   4320       ['block4b_expand_activation[0][0]
+ D)                             480)                             ']                               
+                                                                                                  
+ block4b_bn (BatchNormalization  (None, None, None,   1920       ['block4b_dwconv[0][0]']         
+ )                              480)                                                              
+                                                                                                  
+ block4b_activation (Activation  (None, None, None,   0          ['block4b_bn[0][0]']             
+ )                              480)                                                              
+                                                                                                  
+ block4b_se_squeeze (GlobalAver  (None, 480)         0           ['block4b_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block4b_se_reshape (Reshape)   (None, 1, 1, 480)    0           ['block4b_se_squeeze[0][0]']     
+                                                                                                  
+ block4b_se_reduce (Conv2D)     (None, 1, 1, 20)     9620        ['block4b_se_reshape[0][0]']     
+                                                                                                  
+ block4b_se_expand (Conv2D)     (None, 1, 1, 480)    10080       ['block4b_se_reduce[0][0]']      
+                                                                                                  
+ block4b_se_excite (Multiply)   (None, None, None,   0           ['block4b_activation[0][0]',     
+                                480)                              'block4b_se_expand[0][0]']      
+                                                                                                  
+ block4b_project_conv (Conv2D)  (None, None, None,   38400       ['block4b_se_excite[0][0]']      
+                                80)                                                               
+                                                                                                  
+ block4b_project_bn (BatchNorma  (None, None, None,   320        ['block4b_project_conv[0][0]']   
+ lization)                      80)                                                               
+                                                                                                  
+ block4b_drop (Dropout)         (None, None, None,   0           ['block4b_project_bn[0][0]']     
+                                80)                                                               
+                                                                                                  
+ block4b_add (Add)              (None, None, None,   0           ['block4b_drop[0][0]',           
+                                80)                               'block4a_project_bn[0][0]']     
+                                                                                                  
+ block4c_expand_conv (Conv2D)   (None, None, None,   38400       ['block4b_add[0][0]']            
+                                480)                                                              
+                                                                                                  
+ block4c_expand_bn (BatchNormal  (None, None, None,   1920       ['block4c_expand_conv[0][0]']    
+ ization)                       480)                                                              
+                                                                                                  
+ block4c_expand_activation (Act  (None, None, None,   0          ['block4c_expand_bn[0][0]']      
+ ivation)                       480)                                                              
+                                                                                                  
+ block4c_dwconv (DepthwiseConv2  (None, None, None,   4320       ['block4c_expand_activation[0][0]
+ D)                             480)                             ']                               
+                                                                                                  
+ block4c_bn (BatchNormalization  (None, None, None,   1920       ['block4c_dwconv[0][0]']         
+ )                              480)                                                              
+                                                                                                  
+ block4c_activation (Activation  (None, None, None,   0          ['block4c_bn[0][0]']             
+ )                              480)                                                              
+                                                                                                  
+ block4c_se_squeeze (GlobalAver  (None, 480)         0           ['block4c_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block4c_se_reshape (Reshape)   (None, 1, 1, 480)    0           ['block4c_se_squeeze[0][0]']     
+                                                                                                  
+ block4c_se_reduce (Conv2D)     (None, 1, 1, 20)     9620        ['block4c_se_reshape[0][0]']     
+                                                                                                  
+ block4c_se_expand (Conv2D)     (None, 1, 1, 480)    10080       ['block4c_se_reduce[0][0]']      
+                                                                                                  
+ block4c_se_excite (Multiply)   (None, None, None,   0           ['block4c_activation[0][0]',     
+                                480)                              'block4c_se_expand[0][0]']      
+                                                                                                  
+ block4c_project_conv (Conv2D)  (None, None, None,   38400       ['block4c_se_excite[0][0]']      
+                                80)                                                               
+                                                                                                  
+ block4c_project_bn (BatchNorma  (None, None, None,   320        ['block4c_project_conv[0][0]']   
+ lization)                      80)                                                               
+                                                                                                  
+ block4c_drop (Dropout)         (None, None, None,   0           ['block4c_project_bn[0][0]']     
+                                80)                                                               
+                                                                                                  
+ block4c_add (Add)              (None, None, None,   0           ['block4c_drop[0][0]',           
+                                80)                               'block4b_add[0][0]']            
+                                                                                                  
+ block5a_expand_conv (Conv2D)   (None, None, None,   38400       ['block4c_add[0][0]']            
+                                480)                                                              
+                                                                                                  
+ block5a_expand_bn (BatchNormal  (None, None, None,   1920       ['block5a_expand_conv[0][0]']    
+ ization)                       480)                                                              
+                                                                                                  
+ block5a_expand_activation (Act  (None, None, None,   0          ['block5a_expand_bn[0][0]']      
+ ivation)                       480)                                                              
+                                                                                                  
+ block5a_dwconv (DepthwiseConv2  (None, None, None,   12000      ['block5a_expand_activation[0][0]
+ D)                             480)                             ']                               
+                                                                                                  
+ block5a_bn (BatchNormalization  (None, None, None,   1920       ['block5a_dwconv[0][0]']         
+ )                              480)                                                              
+                                                                                                  
+ block5a_activation (Activation  (None, None, None,   0          ['block5a_bn[0][0]']             
+ )                              480)                                                              
+                                                                                                  
+ block5a_se_squeeze (GlobalAver  (None, 480)         0           ['block5a_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block5a_se_reshape (Reshape)   (None, 1, 1, 480)    0           ['block5a_se_squeeze[0][0]']     
+                                                                                                  
+ block5a_se_reduce (Conv2D)     (None, 1, 1, 20)     9620        ['block5a_se_reshape[0][0]']     
+                                                                                                  
+ block5a_se_expand (Conv2D)     (None, 1, 1, 480)    10080       ['block5a_se_reduce[0][0]']      
+                                                                                                  
+ block5a_se_excite (Multiply)   (None, None, None,   0           ['block5a_activation[0][0]',     
+                                480)                              'block5a_se_expand[0][0]']      
+                                                                                                  
+ block5a_project_conv (Conv2D)  (None, None, None,   53760       ['block5a_se_excite[0][0]']      
+                                112)                                                              
+                                                                                                  
+ block5a_project_bn (BatchNorma  (None, None, None,   448        ['block5a_project_conv[0][0]']   
+ lization)                      112)                                                              
+                                                                                                  
+ block5b_expand_conv (Conv2D)   (None, None, None,   75264       ['block5a_project_bn[0][0]']     
+                                672)                                                              
+                                                                                                  
+ block5b_expand_bn (BatchNormal  (None, None, None,   2688       ['block5b_expand_conv[0][0]']    
+ ization)                       672)                                                              
+                                                                                                  
+ block5b_expand_activation (Act  (None, None, None,   0          ['block5b_expand_bn[0][0]']      
+ ivation)                       672)                                                              
+                                                                                                  
+ block5b_dwconv (DepthwiseConv2  (None, None, None,   16800      ['block5b_expand_activation[0][0]
+ D)                             672)                             ']                               
+                                                                                                  
+ block5b_bn (BatchNormalization  (None, None, None,   2688       ['block5b_dwconv[0][0]']         
+ )                              672)                                                              
+                                                                                                  
+ block5b_activation (Activation  (None, None, None,   0          ['block5b_bn[0][0]']             
+ )                              672)                                                              
+                                                                                                  
+ block5b_se_squeeze (GlobalAver  (None, 672)         0           ['block5b_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block5b_se_reshape (Reshape)   (None, 1, 1, 672)    0           ['block5b_se_squeeze[0][0]']     
+                                                                                                  
+ block5b_se_reduce (Conv2D)     (None, 1, 1, 28)     18844       ['block5b_se_reshape[0][0]']     
+                                                                                                  
+ block5b_se_expand (Conv2D)     (None, 1, 1, 672)    19488       ['block5b_se_reduce[0][0]']      
+                                                                                                  
+ block5b_se_excite (Multiply)   (None, None, None,   0           ['block5b_activation[0][0]',     
+                                672)                              'block5b_se_expand[0][0]']      
+                                                                                                  
+ block5b_project_conv (Conv2D)  (None, None, None,   75264       ['block5b_se_excite[0][0]']      
+                                112)                                                              
+                                                                                                  
+ block5b_project_bn (BatchNorma  (None, None, None,   448        ['block5b_project_conv[0][0]']   
+ lization)                      112)                                                              
+                                                                                                  
+ block5b_drop (Dropout)         (None, None, None,   0           ['block5b_project_bn[0][0]']     
+                                112)                                                              
+                                                                                                  
+ block5b_add (Add)              (None, None, None,   0           ['block5b_drop[0][0]',           
+                                112)                              'block5a_project_bn[0][0]']     
+                                                                                                  
+ block5c_expand_conv (Conv2D)   (None, None, None,   75264       ['block5b_add[0][0]']            
+                                672)                                                              
+                                                                                                  
+ block5c_expand_bn (BatchNormal  (None, None, None,   2688       ['block5c_expand_conv[0][0]']    
+ ization)                       672)                                                              
+                                                                                                  
+ block5c_expand_activation (Act  (None, None, None,   0          ['block5c_expand_bn[0][0]']      
+ ivation)                       672)                                                              
+                                                                                                  
+ block5c_dwconv (DepthwiseConv2  (None, None, None,   16800      ['block5c_expand_activation[0][0]
+ D)                             672)                             ']                               
+                                                                                                  
+ block5c_bn (BatchNormalization  (None, None, None,   2688       ['block5c_dwconv[0][0]']         
+ )                              672)                                                              
+                                                                                                  
+ block5c_activation (Activation  (None, None, None,   0          ['block5c_bn[0][0]']             
+ )                              672)                                                              
+                                                                                                  
+ block5c_se_squeeze (GlobalAver  (None, 672)         0           ['block5c_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block5c_se_reshape (Reshape)   (None, 1, 1, 672)    0           ['block5c_se_squeeze[0][0]']     
+                                                                                                  
+ block5c_se_reduce (Conv2D)     (None, 1, 1, 28)     18844       ['block5c_se_reshape[0][0]']     
+                                                                                                  
+ block5c_se_expand (Conv2D)     (None, 1, 1, 672)    19488       ['block5c_se_reduce[0][0]']      
+                                                                                                  
+ block5c_se_excite (Multiply)   (None, None, None,   0           ['block5c_activation[0][0]',     
+                                672)                              'block5c_se_expand[0][0]']      
+                                                                                                  
+ block5c_project_conv (Conv2D)  (None, None, None,   75264       ['block5c_se_excite[0][0]']      
+                                112)                                                              
+                                                                                                  
+ block5c_project_bn (BatchNorma  (None, None, None,   448        ['block5c_project_conv[0][0]']   
+ lization)                      112)                                                              
+                                                                                                  
+ block5c_drop (Dropout)         (None, None, None,   0           ['block5c_project_bn[0][0]']     
+                                112)                                                              
+                                                                                                  
+ block5c_add (Add)              (None, None, None,   0           ['block5c_drop[0][0]',           
+                                112)                              'block5b_add[0][0]']            
+                                                                                                  
+ block6a_expand_conv (Conv2D)   (None, None, None,   75264       ['block5c_add[0][0]']            
+                                672)                                                              
+                                                                                                  
+ block6a_expand_bn (BatchNormal  (None, None, None,   2688       ['block6a_expand_conv[0][0]']    
+ ization)                       672)                                                              
+                                                                                                  
+ block6a_expand_activation (Act  (None, None, None,   0          ['block6a_expand_bn[0][0]']      
+ ivation)                       672)                                                              
+                                                                                                  
+ block6a_dwconv_pad (ZeroPaddin  (None, None, None,   0          ['block6a_expand_activation[0][0]
+ g2D)                           672)                             ']                               
+                                                                                                  
+ block6a_dwconv (DepthwiseConv2  (None, None, None,   16800      ['block6a_dwconv_pad[0][0]']     
+ D)                             672)                                                              
+                                                                                                  
+ block6a_bn (BatchNormalization  (None, None, None,   2688       ['block6a_dwconv[0][0]']         
+ )                              672)                                                              
+                                                                                                  
+ block6a_activation (Activation  (None, None, None,   0          ['block6a_bn[0][0]']             
+ )                              672)                                                              
+                                                                                                  
+ block6a_se_squeeze (GlobalAver  (None, 672)         0           ['block6a_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block6a_se_reshape (Reshape)   (None, 1, 1, 672)    0           ['block6a_se_squeeze[0][0]']     
+                                                                                                  
+ block6a_se_reduce (Conv2D)     (None, 1, 1, 28)     18844       ['block6a_se_reshape[0][0]']     
+                                                                                                  
+ block6a_se_expand (Conv2D)     (None, 1, 1, 672)    19488       ['block6a_se_reduce[0][0]']      
+                                                                                                  
+ block6a_se_excite (Multiply)   (None, None, None,   0           ['block6a_activation[0][0]',     
+                                672)                              'block6a_se_expand[0][0]']      
+                                                                                                  
+ block6a_project_conv (Conv2D)  (None, None, None,   129024      ['block6a_se_excite[0][0]']      
+                                192)                                                              
+                                                                                                  
+ block6a_project_bn (BatchNorma  (None, None, None,   768        ['block6a_project_conv[0][0]']   
+ lization)                      192)                                                              
+                                                                                                  
+ block6b_expand_conv (Conv2D)   (None, None, None,   221184      ['block6a_project_bn[0][0]']     
+                                1152)                                                             
+                                                                                                  
+ block6b_expand_bn (BatchNormal  (None, None, None,   4608       ['block6b_expand_conv[0][0]']    
+ ization)                       1152)                                                             
+                                                                                                  
+ block6b_expand_activation (Act  (None, None, None,   0          ['block6b_expand_bn[0][0]']      
+ ivation)                       1152)                                                             
+                                                                                                  
+ block6b_dwconv (DepthwiseConv2  (None, None, None,   28800      ['block6b_expand_activation[0][0]
+ D)                             1152)                            ']                               
+                                                                                                  
+ block6b_bn (BatchNormalization  (None, None, None,   4608       ['block6b_dwconv[0][0]']         
+ )                              1152)                                                             
+                                                                                                  
+ block6b_activation (Activation  (None, None, None,   0          ['block6b_bn[0][0]']             
+ )                              1152)                                                             
+                                                                                                  
+ block6b_se_squeeze (GlobalAver  (None, 1152)        0           ['block6b_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block6b_se_reshape (Reshape)   (None, 1, 1, 1152)   0           ['block6b_se_squeeze[0][0]']     
+                                                                                                  
+ block6b_se_reduce (Conv2D)     (None, 1, 1, 48)     55344       ['block6b_se_reshape[0][0]']     
+                                                                                                  
+ block6b_se_expand (Conv2D)     (None, 1, 1, 1152)   56448       ['block6b_se_reduce[0][0]']      
+                                                                                                  
+ block6b_se_excite (Multiply)   (None, None, None,   0           ['block6b_activation[0][0]',     
+                                1152)                             'block6b_se_expand[0][0]']      
+                                                                                                  
+ block6b_project_conv (Conv2D)  (None, None, None,   221184      ['block6b_se_excite[0][0]']      
+                                192)                                                              
+                                                                                                  
+ block6b_project_bn (BatchNorma  (None, None, None,   768        ['block6b_project_conv[0][0]']   
+ lization)                      192)                                                              
+                                                                                                  
+ block6b_drop (Dropout)         (None, None, None,   0           ['block6b_project_bn[0][0]']     
+                                192)                                                              
+                                                                                                  
+ block6b_add (Add)              (None, None, None,   0           ['block6b_drop[0][0]',           
+                                192)                              'block6a_project_bn[0][0]']     
+                                                                                                  
+ block6c_expand_conv (Conv2D)   (None, None, None,   221184      ['block6b_add[0][0]']            
+                                1152)                                                             
+                                                                                                  
+ block6c_expand_bn (BatchNormal  (None, None, None,   4608       ['block6c_expand_conv[0][0]']    
+ ization)                       1152)                                                             
+                                                                                                  
+ block6c_expand_activation (Act  (None, None, None,   0          ['block6c_expand_bn[0][0]']      
+ ivation)                       1152)                                                             
+                                                                                                  
+ block6c_dwconv (DepthwiseConv2  (None, None, None,   28800      ['block6c_expand_activation[0][0]
+ D)                             1152)                            ']                               
+                                                                                                  
+ block6c_bn (BatchNormalization  (None, None, None,   4608       ['block6c_dwconv[0][0]']         
+ )                              1152)                                                             
+                                                                                                  
+ block6c_activation (Activation  (None, None, None,   0          ['block6c_bn[0][0]']             
+ )                              1152)                                                             
+                                                                                                  
+ block6c_se_squeeze (GlobalAver  (None, 1152)        0           ['block6c_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block6c_se_reshape (Reshape)   (None, 1, 1, 1152)   0           ['block6c_se_squeeze[0][0]']     
+                                                                                                  
+ block6c_se_reduce (Conv2D)     (None, 1, 1, 48)     55344       ['block6c_se_reshape[0][0]']     
+                                                                                                  
+ block6c_se_expand (Conv2D)     (None, 1, 1, 1152)   56448       ['block6c_se_reduce[0][0]']      
+                                                                                                  
+ block6c_se_excite (Multiply)   (None, None, None,   0           ['block6c_activation[0][0]',     
+                                1152)                             'block6c_se_expand[0][0]']      
+                                                                                                  
+ block6c_project_conv (Conv2D)  (None, None, None,   221184      ['block6c_se_excite[0][0]']      
+                                192)                                                              
+                                                                                                  
+ block6c_project_bn (BatchNorma  (None, None, None,   768        ['block6c_project_conv[0][0]']   
+ lization)                      192)                                                              
+                                                                                                  
+ block6c_drop (Dropout)         (None, None, None,   0           ['block6c_project_bn[0][0]']     
+                                192)                                                              
+                                                                                                  
+ block6c_add (Add)              (None, None, None,   0           ['block6c_drop[0][0]',           
+                                192)                              'block6b_add[0][0]']            
+                                                                                                  
+ block6d_expand_conv (Conv2D)   (None, None, None,   221184      ['block6c_add[0][0]']            
+                                1152)                                                             
+                                                                                                  
+ block6d_expand_bn (BatchNormal  (None, None, None,   4608       ['block6d_expand_conv[0][0]']    
+ ization)                       1152)                                                             
+                                                                                                  
+ block6d_expand_activation (Act  (None, None, None,   0          ['block6d_expand_bn[0][0]']      
+ ivation)                       1152)                                                             
+                                                                                                  
+ block6d_dwconv (DepthwiseConv2  (None, None, None,   28800      ['block6d_expand_activation[0][0]
+ D)                             1152)                            ']                               
+                                                                                                  
+ block6d_bn (BatchNormalization  (None, None, None,   4608       ['block6d_dwconv[0][0]']         
+ )                              1152)                                                             
+                                                                                                  
+ block6d_activation (Activation  (None, None, None,   0          ['block6d_bn[0][0]']             
+ )                              1152)                                                             
+                                                                                                  
+ block6d_se_squeeze (GlobalAver  (None, 1152)        0           ['block6d_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block6d_se_reshape (Reshape)   (None, 1, 1, 1152)   0           ['block6d_se_squeeze[0][0]']     
+                                                                                                  
+ block6d_se_reduce (Conv2D)     (None, 1, 1, 48)     55344       ['block6d_se_reshape[0][0]']     
+                                                                                                  
+ block6d_se_expand (Conv2D)     (None, 1, 1, 1152)   56448       ['block6d_se_reduce[0][0]']      
+                                                                                                  
+ block6d_se_excite (Multiply)   (None, None, None,   0           ['block6d_activation[0][0]',     
+                                1152)                             'block6d_se_expand[0][0]']      
+                                                                                                  
+ block6d_project_conv (Conv2D)  (None, None, None,   221184      ['block6d_se_excite[0][0]']      
+                                192)                                                              
+                                                                                                  
+ block6d_project_bn (BatchNorma  (None, None, None,   768        ['block6d_project_conv[0][0]']   
+ lization)                      192)                                                              
+                                                                                                  
+ block6d_drop (Dropout)         (None, None, None,   0           ['block6d_project_bn[0][0]']     
+                                192)                                                              
+                                                                                                  
+ block6d_add (Add)              (None, None, None,   0           ['block6d_drop[0][0]',           
+                                192)                              'block6c_add[0][0]']            
+                                                                                                  
+ block7a_expand_conv (Conv2D)   (None, None, None,   221184      ['block6d_add[0][0]']            
+                                1152)                                                             
+                                                                                                  
+ block7a_expand_bn (BatchNormal  (None, None, None,   4608       ['block7a_expand_conv[0][0]']    
+ ization)                       1152)                                                             
+                                                                                                  
+ block7a_expand_activation (Act  (None, None, None,   0          ['block7a_expand_bn[0][0]']      
+ ivation)                       1152)                                                             
+                                                                                                  
+ block7a_dwconv (DepthwiseConv2  (None, None, None,   10368      ['block7a_expand_activation[0][0]
+ D)                             1152)                            ']                               
+                                                                                                  
+ block7a_bn (BatchNormalization  (None, None, None,   4608       ['block7a_dwconv[0][0]']         
+ )                              1152)                                                             
+                                                                                                  
+ block7a_activation (Activation  (None, None, None,   0          ['block7a_bn[0][0]']             
+ )                              1152)                                                             
+                                                                                                  
+ block7a_se_squeeze (GlobalAver  (None, 1152)        0           ['block7a_activation[0][0]']     
+ agePooling2D)                                                                                    
+                                                                                                  
+ block7a_se_reshape (Reshape)   (None, 1, 1, 1152)   0           ['block7a_se_squeeze[0][0]']     
+                                                                                                  
+ block7a_se_reduce (Conv2D)     (None, 1, 1, 48)     55344       ['block7a_se_reshape[0][0]']     
+                                                                                                  
+ block7a_se_expand (Conv2D)     (None, 1, 1, 1152)   56448       ['block7a_se_reduce[0][0]']      
+                                                                                                  
+ block7a_se_excite (Multiply)   (None, None, None,   0           ['block7a_activation[0][0]',     
+                                1152)                             'block7a_se_expand[0][0]']      
+                                                                                                  
+ block7a_project_conv (Conv2D)  (None, None, None,   368640      ['block7a_se_excite[0][0]']      
+                                320)                                                              
+                                                                                                  
+ block7a_project_bn (BatchNorma  (None, None, None,   1280       ['block7a_project_conv[0][0]']   
+ lization)                      320)                                                              
+                                                                                                  
+ top_conv (Conv2D)              (None, None, None,   409600      ['block7a_project_bn[0][0]']     
+                                1280)                                                             
+                                                                                                  
+ top_bn (BatchNormalization)    (None, None, None,   5120        ['top_conv[0][0]']               
+                                1280)                                                             
+                                                                                                  
+ top_activation (Activation)    (None, None, None,   0           ['top_bn[0][0]']                 
+                                1280)                                                             
+                                                                                                  
+==================================================================================================
+Total params: 4,049,571
+Trainable params: 0
+Non-trainable params: 4,049,571
+__________________________________________________________________________________________________
+[ ]
+#how about summary of our whole model
+model_0.summary()
+Model: "model"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_layer (InputLayer)    [(None, 224, 224, 3)]     0         
+                                                                 
+ efficientnetb0 (Functional)  (None, None, None, 1280)  4049571  
+                                                                 
+ Global_average_pooling_laye  (None, 1280)             0         
+ r (GlobalAveragePooling2D)                                      
+                                                                 
+ output_layers (Dense)       (None, 10)                12810     
+                                                                 
+=================================================================
+Total params: 4,062,381
+Trainable params: 12,810
+Non-trainable params: 4,049,571
+_________________________________________________________________
+[ ]
+#check out our models training curve
+plot_loss_curves(history_10_percent)
+
+get a feature vector from a trained model
+let's us demostrate the global average 2d layers....
+
+we have a tensor after our model goes through the base_model of shape (None,7,7,1280)...
+
+But then when it passes though GlobalAveragePool2D, it turns out (None,1280)
+
+let's us use a similar tensor (1,4,4,3) and pass thorugh Globalaveragepooling2d
+
+[ ]
+#Define the input shape
+input_shape=(1,4,4,3)
+
+#create a random tensor
+tf.random.set_seed(42)
+input_tensor=tf.random.normal(input_shape)
+print(f"Random input tensor: \n {input_tensor}\n")
+
+#pass the tensor through the Global average 2D tensor 
+global_average_pooled_tensor=tf.keras.layers.GlobalAveragePooling2D()(input_tensor)
+print(f"global Average 2D tensor:\n {global_average_pooled_tensor}\n")
+
+#check the shape of the different tensors
+print(f"The shape of the input tensor {input_tensor.shape}")
+print(f"The shape of the output tensor {global_average_pooled_tensor.shape}")
+Random input tensor: 
+ [[[[ 0.3274685  -0.8426258   0.3194337 ]
+   [-1.4075519  -2.3880599  -1.0392479 ]
+   [-0.5573232   0.539707    1.6994323 ]
+   [ 0.28893656 -1.5066116  -0.26454744]]
+
+  [[-0.59722406 -1.9171132  -0.62044144]
+   [ 0.8504023  -0.40604794 -3.0258412 ]
+   [ 0.9058464   0.29855987 -0.22561555]
+   [-0.7616443  -1.891714   -0.9384712 ]]
+
+  [[ 0.77852213 -0.47338897  0.97772694]
+   [ 0.24694404  0.20573747 -0.5256233 ]
+   [ 0.32410017  0.02545409 -0.10638497]
+   [-0.6369475   1.1603122   0.2507359 ]]
+
+  [[-0.41728497  0.40125778 -1.4145442 ]
+   [-0.59318566 -1.6617213   0.33567193]
+   [ 0.10815629  0.2347968  -0.56668764]
+   [-0.35819843  0.88698626  0.5274477 ]]]]
+
+global Average 2D tensor:
+ [[-0.09368646 -0.45840445 -0.28855976]]
+
+The shape of the input tensor (1, 4, 4, 3)
+The shape of the output tensor (1, 3)
+[ ]
+#let's average the GlobalAveragePool2D layer
+tf.reduce_mean(input_tensor,axis=[1,2])
+<tf.Tensor: shape=(1, 3), dtype=float32, numpy=array([[-0.09368646, -0.45840445, -0.28855976]], dtype=float32)>
+Running a series of transfer learning experiments
+we have seen the incredible results of transfer learning can get with 10 percent of training data, but how does it goes with one percent of the training_data... we are about to setup a bunch of experiments to find out .
+
+model_1- use feature extraction transfer learning with 1 percent of the data
+
+model_2 - use feature extraction transfer learning with 10% of the training with data augmentation.
+
+model_3 - use fine-tuning tranfer 10 percent of training data with data augmentation
+
+model_4 - use fine tuning tranfer learning experiment with 100 percent of training data with data augmentation.
+
+note: - through our experiments the same test dataset will be used to evaluate the model... this ensure consistency across our evaluation model evaluation metrics.
+
+Getting and preprocessing model for the model_1
+[ ]
+#downlaod and unzip the data
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_1_percent.zip
+unzip_data("10_food_classes_1_percent.zip")
+--2023-01-07 04:09:55--  https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_1_percent.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 142.251.2.128, 142.250.141.128, 2607:f8b0:4023:c0d::80, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|142.251.2.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 133612354 (127M) [application/zip]
+Saving to: ‘10_food_classes_1_percent.zip’
+
+10_food_classes_1_p 100%[===================>] 127.42M   149MB/s    in 0.9s    
+
+2023-01-07 04:09:56 (149 MB/s) - ‘10_food_classes_1_percent.zip’ saved [133612354/133612354]
+
+[ ]
+#create the training and test dir
+train_dir_1_percent="10_food_classes_1_percent/train/"
+test_dir="10_food_classes_1_percent/test/"
+[ ]
+#walk through dir and find no of images
+walk_through_dir("10_food_classes_1_percent")
+There are 2 directories and 0 images in '10_food_classes_1_percent'.
+There are 10 directories and 0 images in '10_food_classes_1_percent/train'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/hamburger'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/steak'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/pizza'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/sushi'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/ice_cream'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/ramen'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/fried_rice'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/grilled_salmon'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/chicken_wings'.
+There are 0 directories and 7 images in '10_food_classes_1_percent/train/chicken_curry'.
+There are 10 directories and 0 images in '10_food_classes_1_percent/test'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/hamburger'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/steak'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/pizza'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/sushi'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/ice_cream'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/ramen'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/fried_rice'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/grilled_salmon'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/chicken_wings'.
+There are 0 directories and 250 images in '10_food_classes_1_percent/test/chicken_curry'.
+[ ]
+#Get our  setup data loaders
+IMG_SIZE=(224,224)
+train_data_1_percent=tf.keras.preprocessing.image_dataset_from_directory(directory=train_dir_1_percent,
+                                                                         image_size=IMG_SIZE,
+                                                                         batch_size=32,
+                                                                         label_mode="categorical")
+
+test_data=tf.keras.preprocessing.image_dataset_from_directory(directory=test_dir,
+                                                                image_size=IMG_SIZE,
+                                                                batch_size=32,
+                                                                label_mode="categorical")
+Found 70 files belonging to 10 classes.
+Found 2500 files belonging to 10 classes.
+Adding data augemtation right into our model
+to add data augmentation we can directly add using layers inside:
+
+tf.keras.layers.experimental.preprocessing(0)
+[ ]
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.layers.experimental import preprocessing
+
+#create data augmemtation from stage with horizontal fitting,rotation and zooms etc.
+data_augmentation=keras.Sequential([
+    preprocessing.RandomFlip("horizontal"),
+    preprocessing.RandomRotation(0.2),
+    preprocessing.RandomZoom(0.2),
+    preprocessing.RandomHeight(0.2),
+    preprocessing.RandomWidth(0.2),
+    #preprocessing.Rescale(1./255),
+],name="data_augmentation")
+
+
+vizualize our data augmentation layer(and see what happens to our data)
+[ ]
+#view a random image and compare it it's augmented version
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import os
+import random
+target_class=random.choice(train_data_1_percent.class_names)
+target_dir="10_food_classes_1_percent/train/" + target_class
+random_image=random.choice(os.listdir(target_dir))
+random_image_path= target_dir + "/" + random_image
+
+#read the random image 
+img=mpimg.imread(random_image_path)
+plt.imshow(img)
+plt.title(f"Original random image in class {target_class}")
+plt.axis(False)
+
+#let's plot our augmented random image
+augmented_image=data_augmentation(img)
+plt.figure()
+plt.imshow(augmented_image/255.)
+plt.title(f"Augmented random image in class {target_class}")
+plt.axis(False)
+
+Model 1 :- feature extraction transfer learning on 1% percent of data with data augmentation
+[ ]
+# Setup input shape and base model, freezing the base model layers
+input_shape = (224, 224, 3)
+base_model = tf.keras.applications.EfficientNetB0(include_top=False)
+base_model.trainable = False
+
+# Create input layer
+inputs = layers.Input(shape=input_shape, name="input_layer")
+
+# Add in data augmentation Sequential model as a layer
+x = data_augmentation(inputs)
+
+# Give base_model inputs (after augmentation) and don't train it
+x = base_model(x, training=False)
+
+# Pool output features of base model
+x = layers.GlobalAveragePooling2D(name="global_average_pooling_layer")(x)
+
+# Put a dense layer on as the output
+outputs = layers.Dense(10, activation="softmax", name="output_layer")(x)
+
+# Make a model with inputs and outputs
+model_1 = keras.Model(inputs, outputs)
+
+# Compile the model
+model_1.compile(loss="categorical_crossentropy",
+              optimizer=tf.keras.optimizers.Adam(),
+              metrics=["accuracy"])
+# Fit the model
+history_1_percent = model_1.fit(train_data_1_percent,
+                    epochs=5,
+                    steps_per_epoch=len(train_data_1_percent),
+                    validation_data=test_data,
+                    validation_steps=int(0.25* len(test_data)), # validate for less steps
+                    # Track model training logs
+                    callbacks=[create_tensorboard_callback("transfer_learning", "1_percent_data_aug")])
+WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+Saving TensorBoard log files to: transfer_learning/1_percent_data_aug/20230107-041002
+Epoch 1/5
+WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+3/3 [==============================] - ETA: 0s - loss: 2.4519 - accuracy: 0.0571WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+3/3 [==============================] - 55s 22s/step - loss: 2.4519 - accuracy: 0.0571 - val_loss: 2.2427 - val_accuracy: 0.1678
+Epoch 2/5
+3/3 [==============================] - 87s 42s/step - loss: 2.1324 - accuracy: 0.2571 - val_loss: 2.0792 - val_accuracy: 0.2730
+Epoch 3/5
+3/3 [==============================] - 46s 22s/step - loss: 1.9116 - accuracy: 0.4143 - val_loss: 1.9683 - val_accuracy: 0.3372
+Epoch 4/5
+3/3 [==============================] - 45s 22s/step - loss: 1.7793 - accuracy: 0.5714 - val_loss: 1.8952 - val_accuracy: 0.3832
+Epoch 5/5
+3/3 [==============================] - 46s 22s/step - loss: 1.5837 - accuracy: 0.7286 - val_loss: 1.7773 - val_accuracy: 0.4507
+[ ]
+#check out our model summary
+model_1.summary()
+Model: "model_1"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_layer (InputLayer)    [(None, 224, 224, 3)]     0         
+                                                                 
+ data_augmentation (Sequenti  (512, 512, 3)            0         
+ al)                                                             
+                                                                 
+ efficientnetb0 (Functional)  (None, None, None, 1280)  4049571  
+                                                                 
+ global_average_pooling_laye  (None, 1280)             0         
+ r (GlobalAveragePooling2D)                                      
+                                                                 
+ output_layer (Dense)        (None, 10)                12810     
+                                                                 
+=================================================================
+Total params: 4,062,381
+Trainable params: 12,810
+Non-trainable params: 4,049,571
+_________________________________________________________________
+[ ]
+#Evaluate on the full test dataset
+model_1_evaluate=model_1.evaluate(test_data)
+79/79 [==============================] - 162s 2s/step - loss: 1.7768 - accuracy: 0.4660
+[ ]
+model_1_evaluate
+[1.7768017053604126, 0.4659999907016754]
+[ ]
+#what does the data augmentation loss curve looks likes
+plot_loss_curves(history_1_percent)
+
+model_2:- let's us develop the same as model_0 but with data augmentation
+[ ]
+#create training and test directories paths 
+train_dir="10_food_classes_10_percent/train"
+test_dir="10_food_classes_10_percent/test"
+[ ]
+train_data_10_percent=tf.keras.preprocessing.image_dataset_from_directory(directory=train_dir,
+                                                                         image_size=(224,224),
+                                                                         batch_size=32,
+                                                                         label_mode="categorical")
+
+test_data=tf.keras.preprocessing.image_dataset_from_directory(directory=test_dir,
+                                                                         image_size=(224,224),
+                                                                         batch_size=32,
+                                                                         label_mode="categorical")
+Found 750 files belonging to 10 classes.
+Found 2500 files belonging to 10 classes.
+[ ]
+#create the base model
+base_model=tf.keras.applications.EfficientNetB0(include_top=False)
+
+#freeze the layers
+base_model.trainable=False
+
+#create the input layer
+input=tf.keras.layers.Input(shape=(224,224,3),name="input_shape")
+
+#data augmentation
+x=data_augmentation(input)
+
+#add to the base model
+x=base_model(x,training=False)
+
+#add GlobalAveragePooling
+x=tf.keras.layers.GlobalAveragePooling2D(name="GlobalAveragePooling")(x)
+
+#output layers
+outputs=tf.keras.layers.Dense(10,activation="softmax",name="output_layers")(x)
+
+#build the model
+model_2=tf.keras.Model(input,outputs)
+
+#compile the model
+model_2.compile(loss="categorical_crossentropy",
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+
+WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+[ ]
+model_2.summary()
+Model: "model_2"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_shape (InputLayer)    [(None, 224, 224, 3)]     0         
+                                                                 
+ data_augmentation (Sequenti  (512, 512, 3)            0         
+ al)                                                             
+                                                                 
+ efficientnetb0 (Functional)  (None, None, None, 1280)  4049571  
+                                                                 
+ GlobalAveragePooling (Globa  (None, 1280)             0         
+ lAveragePooling2D)                                              
+                                                                 
+ output_layers (Dense)       (None, 10)                12810     
+                                                                 
+=================================================================
+Total params: 4,062,381
+Trainable params: 12,810
+Non-trainable params: 4,049,571
+_________________________________________________________________
+Create a model checkpoint callback
+The model callback checkpoint intermediately save our model (the full model or just the weights) during training. This is usefull because we can comeback and start where we left off.
+
+[ ]
+#set the checkpoint path
+checkpoint_path="ten_percent_model_checkpoint_weights/checkpoints.ckpt"
+
+#create modelChekpoint callback that saves the model's weights only
+checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                       save_weight_only=True,
+                                                       save_best_only=False,
+                                                       save_freq="epoch", #save every epoch,
+                                                       verbose=1)
+[ ]
+#fit the model saving checkpoint at every epochs
+initial_epochs=5
+history_10_percent_aug=model_2.fit(train_data_10_percent,
+            epochs=initial_epochs,
+            validation_data=test_data,
+            validation_steps=int(0.25*len(test_data)),
+            callbacks=[create_tensorboard_callback(dir_name="transfer_learning",
+                                                  experiment_name="10_percent_data_aug"),checkpoint_callback])
+Saving TensorBoard log files to: transfer_learning/10_percent_data_aug/20230107-042052
+Epoch 1/5
+WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+24/24 [==============================] - ETA: 0s - loss: 1.9759 - accuracy: 0.3520WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+
+Epoch 1: saving model to ten_percent_model_checkpoint_weights/checkpoints.ckpt
+WARNING:tensorflow:Model was constructed with shape (512, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(512, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op while saving (showing 5 of 81). These functions will not be directly callable after loading.
+24/24 [==============================] - 148s 6s/step - loss: 1.9759 - accuracy: 0.3520 - val_loss: 1.4425 - val_accuracy: 0.6990
+Epoch 2/5
+24/24 [==============================] - ETA: 0s - loss: 1.3097 - accuracy: 0.6960
+Epoch 2: saving model to ten_percent_model_checkpoint_weights/checkpoints.ckpt
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op while saving (showing 5 of 81). These functions will not be directly callable after loading.
+24/24 [==============================] - 135s 6s/step - loss: 1.3097 - accuracy: 0.6960 - val_loss: 1.0195 - val_accuracy: 0.7714
+Epoch 3/5
+24/24 [==============================] - ETA: 0s - loss: 0.9707 - accuracy: 0.7733
+Epoch 3: saving model to ten_percent_model_checkpoint_weights/checkpoints.ckpt
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op while saving (showing 5 of 81). These functions will not be directly callable after loading.
+24/24 [==============================] - 141s 6s/step - loss: 0.9707 - accuracy: 0.7733 - val_loss: 0.7986 - val_accuracy: 0.8059
+Epoch 4/5
+24/24 [==============================] - ETA: 0s - loss: 0.8288 - accuracy: 0.8093
+Epoch 4: saving model to ten_percent_model_checkpoint_weights/checkpoints.ckpt
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op while saving (showing 5 of 81). These functions will not be directly callable after loading.
+24/24 [==============================] - 141s 6s/step - loss: 0.8288 - accuracy: 0.8093 - val_loss: 0.6891 - val_accuracy: 0.8141
+Epoch 5/5
+24/24 [==============================] - ETA: 0s - loss: 0.7218 - accuracy: 0.8267
+Epoch 5: saving model to ten_percent_model_checkpoint_weights/checkpoints.ckpt
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op while saving (showing 5 of 81). These functions will not be directly callable after loading.
+24/24 [==============================] - 183s 8s/step - loss: 0.7218 - accuracy: 0.8267 - val_loss: 0.6240 - val_accuracy: 0.8355
+[ ]
+#what is model_0 results
+model_0.evaluate(test_data)
+79/79 [==============================] - 159s 2s/step - loss: 0.5566 - accuracy: 0.8592
+[0.5565838813781738, 0.8592000007629395]
+[ ]
+#check model_2 results on all test_data
+results_10_percent_data_aug=model_2.evaluate(test_data)
+79/79 [==============================] - 151s 2s/step - loss: 0.6142 - accuracy: 0.8456
+[ ]
+#plot the loss curve
+plot_loss_curves(history_10_percent_aug)
+
+loading in checkpointed weights
+Loading in the checkpointed weights returns a model to a specific model checkpoints
+
+[ ]
+#load in saved model weights and evaluate
+model_2.load_weights(checkpoint_path)
+<tensorflow.python.training.tracking.util.CheckpointLoadStatus at 0x7f651f097220>
+[ ]
+#evaluate model 2 with the loaded weights
+loaded_weights_model_results=model_2.evaluate(test_data)
+79/79 [==============================] - 158s 2s/step - loss: 0.6142 - accuracy: 0.8456
+[ ]
+#if the results from the previous evaluated model_2 matches the loaded weight everythings have worked
+results_10_percent_data_aug == loaded_weights_model_results
+False
+[ ]
+results_10_percent_data_aug
+[0.6141998767852783, 0.8456000089645386]
+[ ]
+loaded_weights_model_results
+[0.6141999959945679, 0.8456000089645386]
+[ ]
+#check to see if the loaded model results are close to our non loaded model results
+import numpy as np
+np.isclose(np.array(results_10_percent_data_aug),np.array(loaded_weights_model_results))
+array([ True,  True])
+[ ]
+#check the difference between the two results
+print(np.array(results_10_percent_data_aug)-np.array(loaded_weights_model_results))
+[-1.1920929e-07  0.0000000e+00]
+fine-tuning a existing model on a 10% of data
+note- fine-tuning works best after training a feature extraction model for a few epochs with a large amounts of custom data
+
+[ ]
+#layers for model 2
+model_2.layers
+[<keras.engine.input_layer.InputLayer at 0x7f6525c11820>,
+ <keras.engine.sequential.Sequential at 0x7f65296a2a30>,
+ <keras.engine.functional.Functional at 0x7f65302b7880>,
+ <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D at 0x7f6525c11760>,
+ <keras.layers.core.dense.Dense at 0x7f6523b96550>]
+[ ]
+#are these model trainable
+for layers in model_2.layers:
+  print(layer,layer.trainable)
+<keras.layers.core.activation.Activation object at 0x7f652c2a6b50> False
+<keras.layers.core.activation.Activation object at 0x7f652c2a6b50> False
+<keras.layers.core.activation.Activation object at 0x7f652c2a6b50> False
+<keras.layers.core.activation.Activation object at 0x7f652c2a6b50> False
+<keras.layers.core.activation.Activation object at 0x7f652c2a6b50> False
+[ ]
+#what layers are in our base model
+for i, layer in enumerate(model_2.layers[2].layers):
+  print(layers,layer.name,layer.trainable)
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> input_3 False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> rescaling_2 False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> normalization_2 False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> tf.math.truediv_2 False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> stem_conv_pad False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> stem_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> stem_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> stem_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block1a_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_dwconv_pad False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2a_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block2b_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_dwconv_pad False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3a_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block3b_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_dwconv_pad False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4a_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4b_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block4c_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5a_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5b_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block5c_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_dwconv_pad False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6a_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6b_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6c_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_drop False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block6d_add False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_expand_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_expand_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_expand_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_dwconv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_activation False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_se_squeeze False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_se_reshape False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_se_reduce False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_se_expand False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_se_excite False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_project_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> block7a_project_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> top_conv False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> top_bn False
+<keras.layers.core.dense.Dense object at 0x7f6523b96550> top_activation False
+[ ]
+#how many trainable variable are present in our weight model
+print(len(model_2.layers[2].trainable_variables))
+0
+[ ]
+#to begin fine turning let's us start by seeting the last 10 layers of our base model.trainable=2
+base_model.trainable=True
+
+#freeze all expect the last 10
+for layer in base_model.layers[:-10]:
+  layer.trainable=False
+
+#recompile our model every time we make a change
+model_2.compile(loss="categorical_crossentropy",
+                optimizer=tf.keras.optimizers.Adam(lr=0.0001), # when fine-tuning you typically want to lower the learning rate by 10x
+                metrics=["accuracy"])
+
+/usr/local/lib/python3.8/dist-packages/keras/optimizers/optimizer_v2/adam.py:110: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  super(Adam, self).__init__(name, **kwargs)
+note:- when using fine-tuning it is better to lower your learning rate by some amount
+
+[ ]
+#check the layers are tunable(trainable)
+for layer_number , layer in enumerate(model_2.layers[2].layers):
+  print(layer_number,layer.name,layer.trainable)
+0 input_3 False
+1 rescaling_2 False
+2 normalization_2 False
+3 tf.math.truediv_2 False
+4 stem_conv_pad False
+5 stem_conv False
+6 stem_bn False
+7 stem_activation False
+8 block1a_dwconv False
+9 block1a_bn False
+10 block1a_activation False
+11 block1a_se_squeeze False
+12 block1a_se_reshape False
+13 block1a_se_reduce False
+14 block1a_se_expand False
+15 block1a_se_excite False
+16 block1a_project_conv False
+17 block1a_project_bn False
+18 block2a_expand_conv False
+19 block2a_expand_bn False
+20 block2a_expand_activation False
+21 block2a_dwconv_pad False
+22 block2a_dwconv False
+23 block2a_bn False
+24 block2a_activation False
+25 block2a_se_squeeze False
+26 block2a_se_reshape False
+27 block2a_se_reduce False
+28 block2a_se_expand False
+29 block2a_se_excite False
+30 block2a_project_conv False
+31 block2a_project_bn False
+32 block2b_expand_conv False
+33 block2b_expand_bn False
+34 block2b_expand_activation False
+35 block2b_dwconv False
+36 block2b_bn False
+37 block2b_activation False
+38 block2b_se_squeeze False
+39 block2b_se_reshape False
+40 block2b_se_reduce False
+41 block2b_se_expand False
+42 block2b_se_excite False
+43 block2b_project_conv False
+44 block2b_project_bn False
+45 block2b_drop False
+46 block2b_add False
+47 block3a_expand_conv False
+48 block3a_expand_bn False
+49 block3a_expand_activation False
+50 block3a_dwconv_pad False
+51 block3a_dwconv False
+52 block3a_bn False
+53 block3a_activation False
+54 block3a_se_squeeze False
+55 block3a_se_reshape False
+56 block3a_se_reduce False
+57 block3a_se_expand False
+58 block3a_se_excite False
+59 block3a_project_conv False
+60 block3a_project_bn False
+61 block3b_expand_conv False
+62 block3b_expand_bn False
+63 block3b_expand_activation False
+64 block3b_dwconv False
+65 block3b_bn False
+66 block3b_activation False
+67 block3b_se_squeeze False
+68 block3b_se_reshape False
+69 block3b_se_reduce False
+70 block3b_se_expand False
+71 block3b_se_excite False
+72 block3b_project_conv False
+73 block3b_project_bn False
+74 block3b_drop False
+75 block3b_add False
+76 block4a_expand_conv False
+77 block4a_expand_bn False
+78 block4a_expand_activation False
+79 block4a_dwconv_pad False
+80 block4a_dwconv False
+81 block4a_bn False
+82 block4a_activation False
+83 block4a_se_squeeze False
+84 block4a_se_reshape False
+85 block4a_se_reduce False
+86 block4a_se_expand False
+87 block4a_se_excite False
+88 block4a_project_conv False
+89 block4a_project_bn False
+90 block4b_expand_conv False
+91 block4b_expand_bn False
+92 block4b_expand_activation False
+93 block4b_dwconv False
+94 block4b_bn False
+95 block4b_activation False
+96 block4b_se_squeeze False
+97 block4b_se_reshape False
+98 block4b_se_reduce False
+99 block4b_se_expand False
+100 block4b_se_excite False
+101 block4b_project_conv False
+102 block4b_project_bn False
+103 block4b_drop False
+104 block4b_add False
+105 block4c_expand_conv False
+106 block4c_expand_bn False
+107 block4c_expand_activation False
+108 block4c_dwconv False
+109 block4c_bn False
+110 block4c_activation False
+111 block4c_se_squeeze False
+112 block4c_se_reshape False
+113 block4c_se_reduce False
+114 block4c_se_expand False
+115 block4c_se_excite False
+116 block4c_project_conv False
+117 block4c_project_bn False
+118 block4c_drop False
+119 block4c_add False
+120 block5a_expand_conv False
+121 block5a_expand_bn False
+122 block5a_expand_activation False
+123 block5a_dwconv False
+124 block5a_bn False
+125 block5a_activation False
+126 block5a_se_squeeze False
+127 block5a_se_reshape False
+128 block5a_se_reduce False
+129 block5a_se_expand False
+130 block5a_se_excite False
+131 block5a_project_conv False
+132 block5a_project_bn False
+133 block5b_expand_conv False
+134 block5b_expand_bn False
+135 block5b_expand_activation False
+136 block5b_dwconv False
+137 block5b_bn False
+138 block5b_activation False
+139 block5b_se_squeeze False
+140 block5b_se_reshape False
+141 block5b_se_reduce False
+142 block5b_se_expand False
+143 block5b_se_excite False
+144 block5b_project_conv False
+145 block5b_project_bn False
+146 block5b_drop False
+147 block5b_add False
+148 block5c_expand_conv False
+149 block5c_expand_bn False
+150 block5c_expand_activation False
+151 block5c_dwconv False
+152 block5c_bn False
+153 block5c_activation False
+154 block5c_se_squeeze False
+155 block5c_se_reshape False
+156 block5c_se_reduce False
+157 block5c_se_expand False
+158 block5c_se_excite False
+159 block5c_project_conv False
+160 block5c_project_bn False
+161 block5c_drop False
+162 block5c_add False
+163 block6a_expand_conv False
+164 block6a_expand_bn False
+165 block6a_expand_activation False
+166 block6a_dwconv_pad False
+167 block6a_dwconv False
+168 block6a_bn False
+169 block6a_activation False
+170 block6a_se_squeeze False
+171 block6a_se_reshape False
+172 block6a_se_reduce False
+173 block6a_se_expand False
+174 block6a_se_excite False
+175 block6a_project_conv False
+176 block6a_project_bn False
+177 block6b_expand_conv False
+178 block6b_expand_bn False
+179 block6b_expand_activation False
+180 block6b_dwconv False
+181 block6b_bn False
+182 block6b_activation False
+183 block6b_se_squeeze False
+184 block6b_se_reshape False
+185 block6b_se_reduce False
+186 block6b_se_expand False
+187 block6b_se_excite False
+188 block6b_project_conv False
+189 block6b_project_bn False
+190 block6b_drop False
+191 block6b_add False
+192 block6c_expand_conv False
+193 block6c_expand_bn False
+194 block6c_expand_activation False
+195 block6c_dwconv False
+196 block6c_bn False
+197 block6c_activation False
+198 block6c_se_squeeze False
+199 block6c_se_reshape False
+200 block6c_se_reduce False
+201 block6c_se_expand False
+202 block6c_se_excite False
+203 block6c_project_conv False
+204 block6c_project_bn False
+205 block6c_drop False
+206 block6c_add False
+207 block6d_expand_conv False
+208 block6d_expand_bn False
+209 block6d_expand_activation False
+210 block6d_dwconv False
+211 block6d_bn False
+212 block6d_activation False
+213 block6d_se_squeeze False
+214 block6d_se_reshape False
+215 block6d_se_reduce False
+216 block6d_se_expand False
+217 block6d_se_excite False
+218 block6d_project_conv False
+219 block6d_project_bn False
+220 block6d_drop False
+221 block6d_add False
+222 block7a_expand_conv False
+223 block7a_expand_bn False
+224 block7a_expand_activation False
+225 block7a_dwconv False
+226 block7a_bn False
+227 block7a_activation False
+228 block7a_se_squeeze True
+229 block7a_se_reshape True
+230 block7a_se_reduce True
+231 block7a_se_expand True
+232 block7a_se_excite True
+233 block7a_project_conv True
+234 block7a_project_bn True
+235 top_conv True
+236 top_bn True
+237 top_activation True
+[ ]
+#now since we have unfrozen some of our variables lets see the trainable variables
+print(len(model_2.trainable_variables))
+12
+[ ]
+#fine-tuning for another 10 epochs
+fine_tune_epochs=initial_epochs+5
+
+#refit the model (same as model 2)
+history_fine_10_percent_data_aug=model_2.fit(train_data_10_percent,
+                                             epochs=fine_tune_epochs,
+                                             validation_data=test_data,
+                                             validation_steps=int(len(test_data)),
+                                             initial_epoch=history_10_percent_aug.epoch[-1], #start training from previous last epoch
+                                             callbacks=[create_tensorboard_callback(dir_name="tranfer_learning",
+                                                                                    experiment_name="10_percent_fine_tune_last_10")])
+Saving TensorBoard log files to: tranfer_learning/10_percent_fine_tune_last_10/20230107-044305
+Epoch 5/10
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+24/24 [==============================] - ETA: 0s - loss: 0.5960 - accuracy: 0.8320WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+24/24 [==============================] - 270s 11s/step - loss: 0.5960 - accuracy: 0.8320 - val_loss: 0.4773 - val_accuracy: 0.8540
+Epoch 6/10
+24/24 [==============================] - 257s 11s/step - loss: 0.5005 - accuracy: 0.8587 - val_loss: 0.4455 - val_accuracy: 0.8544
+Epoch 7/10
+24/24 [==============================] - 205s 9s/step - loss: 0.4304 - accuracy: 0.8760 - val_loss: 0.4338 - val_accuracy: 0.8572
+Epoch 8/10
+24/24 [==============================] - 254s 11s/step - loss: 0.3866 - accuracy: 0.8880 - val_loss: 0.4241 - val_accuracy: 0.8600
+Epoch 9/10
+24/24 [==============================] - 255s 11s/step - loss: 0.3403 - accuracy: 0.9080 - val_loss: 0.4159 - val_accuracy: 0.8584
+Epoch 10/10
+24/24 [==============================] - 257s 11s/step - loss: 0.3048 - accuracy: 0.9160 - val_loss: 0.4165 - val_accuracy: 0.8628
+[ ]
+result__fine_tune_10_percent=model_2.evaluate(test_data)
+79/79 [==============================] - 159s 2s/step - loss: 0.4165 - accuracy: 0.8628
+[ ]
+#check out the lost curve of our fine tuned model
+plot_loss_curves(history_fine_10_percent_data_aug)
+
+note:- plot_loss_Curves only work great with model which have been only fit once,however we something to compare one series of running fit with another. eg before and after fine tuning
+
+[ ]
+#let's create something to create histories
+def compare_historys(original_history,new_history, initial_epochs=5):
+  """
+  compare two tensorflow history objects
+  """
+  #get original history measurements
+  acc=original_history.history["accuracy"]
+  loss=original_history.history["loss"]
+
+  val_acc=original_history.history["val_accuracy"]
+  val_loss=original_history.history["val_loss"]
+
+  #combine original history ,metrics with new history metrics
+  total_acc=acc+new_history.history["accuracy"]
+  total_loss=acc+new_history.history["loss"]
+
+  total_val_acc=acc+new_history.history["val_accuracy"]
+  total_val_loss=acc+new_history.history["val_loss"]
+
+  #make plots
+  plt.figure(figsize=(8,8))
+  plt.subplot(2,1,1)
+  plt.plot(total_acc,label="training Accuracy")
+  plt.plot(total_val_acc,label="training val_Accuracy")
+  plt.plot([initial_epochs-1,initial_epochs-1 ],plt.ylim(),label="start fine tuning")
+  plt.legend(loc="lower right")
+  plt.title("training and validation accuracy")
+
+  #make plots
+  plt.figure(figsize=(8,8))
+  plt.subplot(2,1,2)
+  plt.plot(total_loss,label="training loss")
+  plt.plot(total_val_loss,label="training val_loss")
+  plt.plot([initial_epochs-1,initial_epochs-1 ],plt.ylim(),label="start fine tuning")
+  plt.legend(loc="upper right")
+  plt.title("training and validation accuracy")
+[ ]
+compare_historys(history_10_percent_aug,
+                history_fine_10_percent_data_aug,initial_epochs=5)
+
+model_4:- Fine-tuning existing model on all of the data
+[ ]
+#download and unzip 10 classes of food 101 data with all images
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_all_data.zip
+unzip_data("10_food_classes_all_data.zip")
+--2023-01-07 05:49:16--  https://storage.googleapis.com/ztm_tf_course/food_vision/10_food_classes_all_data.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 142.251.2.128, 142.250.141.128, 2607:f8b0:4023:c0b::80, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|142.251.2.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 519183241 (495M) [application/zip]
+Saving to: ‘10_food_classes_all_data.zip’
+
+10_food_classes_all 100%[===================>] 495.13M   156MB/s    in 3.4s    
+
+2023-01-07 05:49:20 (146 MB/s) - ‘10_food_classes_all_data.zip’ saved [519183241/519183241]
+
+[ ]
+#setting up training and testing data dir
+train_dir_all_data="10_food_classes_all_data/train"
+test_dir="10_food_classes_all_data/test"
+[ ]
+#how many images are we working with now?
+walk_through_dir("10_food_classes_all_data")
+There are 2 directories and 0 images in '10_food_classes_all_data'.
+There are 10 directories and 0 images in '10_food_classes_all_data/train'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/hamburger'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/steak'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/pizza'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/sushi'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/ice_cream'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/ramen'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/fried_rice'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/grilled_salmon'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/chicken_wings'.
+There are 0 directories and 750 images in '10_food_classes_all_data/train/chicken_curry'.
+There are 10 directories and 0 images in '10_food_classes_all_data/test'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/hamburger'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/steak'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/pizza'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/sushi'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/ice_cream'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/ramen'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/fried_rice'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/grilled_salmon'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/chicken_wings'.
+There are 0 directories and 250 images in '10_food_classes_all_data/test/chicken_curry'.
+[ ]
+#setup our data 
+train_all_data_classes=tf.keras.preprocessing.image_dataset_from_directory(directory=train_dir_all_data,
+                                                                          image_size=(224,224),
+                                                                          batch_size=32,
+                                                                          label_mode="categorical")
+test_data=tf.keras.preprocessing.image_dataset_from_directory(directory=test_dir,
+                                                                          image_size=(224,224),
+                                                                          batch_size=32,
+                                                                          label_mode="categorical")
+Found 7500 files belonging to 10 classes.
+Found 2500 files belonging to 10 classes.
+the test dataset we have been loaded has been the same for as what we have been using for the previous expeiments(used same data set)
+
+let's check this
+
+[ ]
+#evaluate the model_2 fine-tuning version
+model_2.evaluate(test_data)
+79/79 [==============================] - 165s 2s/step - loss: 0.4165 - accuracy: 0.8628
+[0.4165354371070862, 0.8628000020980835]
+[ ]
+result__fine_tune_10_percent
+[0.4165354073047638, 0.8628000020980835]
+to train a fine_tuning model(model_4) we need to revert model_2 back to its feature extraction weights
+
+[ ]
+#load model from checkpoint,that we can fine-tune from the stage the 10 percent data model was fine-tuned from
+#the same stage the 10 percent data model was fine-tuned from
+model_2.load_weights(checkpoint_path)
+
+<tensorflow.python.training.tracking.util.CheckpointLoadStatus at 0x7f651aefeac0>
+[ ]
+#let's us evaluate model 2 now
+model_2.evaluate(test_data)
+79/79 [==============================] - 168s 2s/step - loss: 0.6142 - accuracy: 0.8456
+[0.6141999363899231, 0.8456000089645386]
+[ ]
+#check the data with 10 percent data aug
+results_10_percent_data_aug
+[0.6141998767852783, 0.8456000089645386]
+alright, the previous might seem quite confusing but all we have done is:
+
+trained the feature extraction transfer learning model for 5 epochs on 10% percent of the data with data augementation and we have model weights using model checkpoints callbacks
+
+we fined tuned the same model on the same 10percent of the data for a further 5 epochs with top 10 layers of basic model unfrozen(model_3)
+
+we saved the results and training logs each time
+
+Reload the model from step 1 to do the same steps as model_2 expect this time we will use all of the data
+
+[ ]
+#check which layer are tunable in the whole layer
+for layer_number ,layer in enumerate(model_2.layers):
+  print(layer_number,layer.name,layer.trainable)
+0 input_shape True
+1 data_augmentation True
+2 efficientnetb0 True
+3 GlobalAveragePooling True
+4 output_layers True
+[ ]
+#let's drill into our base_model(efficientNetB0) and see what layer are trainable
+for layer_number, layer in enumerate(model_2.layers[2].layers):
+  print(layer_number,layer,layer.trainable)
+0 <keras.engine.input_layer.InputLayer object at 0x7f6525c11850> False
+1 <keras.layers.preprocessing.image_preprocessing.Rescaling object at 0x7f6525c11970> False
+2 <keras.layers.preprocessing.normalization.Normalization object at 0x7f6525c11c70> False
+3 <keras.layers.core.tf_op_layer.TFOpLambda object at 0x7f6525c11d90> False
+4 <keras.layers.reshaping.zero_padding2d.ZeroPadding2D object at 0x7f6525c587f0> False
+5 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b405f70> False
+6 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b2c3e80> False
+7 <keras.layers.core.activation.Activation object at 0x7f6529cc1a60> False
+8 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6529caffa0> False
+9 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b2562b0> False
+10 <keras.layers.core.activation.Activation object at 0x7f6525c09a60> False
+11 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525c1ffa0> False
+12 <keras.layers.reshaping.reshape.Reshape object at 0x7f6529cafa00> False
+13 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652979aa60> False
+14 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652979a4f0> False
+15 <keras.layers.merging.multiply.Multiply object at 0x7f652b305d00> False
+16 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f65296918b0> False
+17 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b2a7f40> False
+18 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6529cafca0> False
+19 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b2c3220> False
+20 <keras.layers.core.activation.Activation object at 0x7f65297b6880> False
+21 <keras.layers.reshaping.zero_padding2d.ZeroPadding2D object at 0x7f652b014e50> False
+22 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525c0d640> False
+23 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f65297c5a30> False
+24 <keras.layers.core.activation.Activation object at 0x7f65297c7400> False
+25 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525b7ebe0> False
+26 <keras.layers.reshaping.reshape.Reshape object at 0x7f65297b68e0> False
+27 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b85160> False
+28 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f65297b6280> False
+29 <keras.layers.merging.multiply.Multiply object at 0x7f6525c0df70> False
+30 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f65297c5130> False
+31 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525b8ed90> False
+32 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b97e80> False
+33 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f65297dc130> False
+34 <keras.layers.core.activation.Activation object at 0x7f6525ba0c70> False
+35 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525ba7790> False
+36 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525b7e220> False
+37 <keras.layers.core.activation.Activation object at 0x7f65297c7310> False
+38 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525b979d0> False
+39 <keras.layers.reshaping.reshape.Reshape object at 0x7f65297c5370> False
+40 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525c11f40> False
+41 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b8e580> False
+42 <keras.layers.merging.multiply.Multiply object at 0x7f6525b8e370> False
+43 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b978e0> False
+44 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525b30130> False
+45 <keras.layers.regularization.dropout.Dropout object at 0x7f6525b3df10> False
+46 <keras.layers.merging.add.Add object at 0x7f6525b41c10> False
+47 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f65297c5910> False
+48 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b308c70> False
+49 <keras.layers.core.activation.Activation object at 0x7f6525b48e50> False
+50 <keras.layers.reshaping.zero_padding2d.ZeroPadding2D object at 0x7f6525b41850> False
+51 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f65297b6970> False
+52 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525b3d9a0> False
+53 <keras.layers.core.activation.Activation object at 0x7f6525b58850> False
+54 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525b48190> False
+55 <keras.layers.reshaping.reshape.Reshape object at 0x7f6525b613d0> False
+56 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b4c1f0> False
+57 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b4c760> False
+58 <keras.layers.merging.multiply.Multiply object at 0x7f6525b3da60> False
+59 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525af0040> False
+60 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525b3dc70> False
+61 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525af06a0> False
+62 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525af96d0> False
+63 <keras.layers.core.activation.Activation object at 0x7f6525b03790> False
+64 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525b145e0> False
+65 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525b618b0> False
+66 <keras.layers.core.activation.Activation object at 0x7f6525b14fa0> False
+67 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525b0b340> False
+68 <keras.layers.reshaping.reshape.Reshape object at 0x7f6525b18fd0> False
+69 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b0b2b0> False
+70 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b0b3d0> False
+71 <keras.layers.merging.multiply.Multiply object at 0x7f6525b61520> False
+72 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525af9be0> False
+73 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525af0640> False
+74 <keras.layers.regularization.dropout.Dropout object at 0x7f6525ac75b0> False
+75 <keras.layers.merging.add.Add object at 0x7f6525ac7790> False
+76 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b308250> False
+77 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525ac77c0> False
+78 <keras.layers.core.activation.Activation object at 0x7f6525b03af0> False
+79 <keras.layers.reshaping.zero_padding2d.ZeroPadding2D object at 0x7f6525b185e0> False
+80 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525b03a30> False
+81 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525af9a30> False
+82 <keras.layers.core.activation.Activation object at 0x7f6525b14700> False
+83 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f65297914f0> False
+84 <keras.layers.reshaping.reshape.Reshape object at 0x7f6525b033d0> False
+85 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525b4c2b0> False
+86 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525abf1c0> False
+87 <keras.layers.merging.multiply.Multiply object at 0x7f6525b23280> False
+88 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525aae1f0> False
+89 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525acd910> False
+90 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525a69520> False
+91 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525a69490> False
+92 <keras.layers.core.activation.Activation object at 0x7f6525ad8280> False
+93 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525a72790> False
+94 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f65296892b0> False
+95 <keras.layers.core.activation.Activation object at 0x7f6525ad8fa0> False
+96 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525a82970> False
+97 <keras.layers.reshaping.reshape.Reshape object at 0x7f6525ad8460> False
+98 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525a828e0> False
+99 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525ad8fd0> False
+100 <keras.layers.merging.multiply.Multiply object at 0x7f6525a82ca0> False
+101 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525ae11f0> False
+102 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525a95220> False
+103 <keras.layers.regularization.dropout.Dropout object at 0x7f6525a9fd30> False
+104 <keras.layers.merging.add.Add object at 0x7f6525aa5c70> False
+105 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525ac7e20> False
+106 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525a30a90> False
+107 <keras.layers.core.activation.Activation object at 0x7f6525a9ffa0> False
+108 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525a9fca0> False
+109 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525a82bb0> False
+110 <keras.layers.core.activation.Activation object at 0x7f6525aa5670> False
+111 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525a35f10> False
+112 <keras.layers.reshaping.reshape.Reshape object at 0x7f6525a9f9a0> False
+113 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525a82250> False
+114 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525a35190> False
+115 <keras.layers.merging.multiply.Multiply object at 0x7f6525a30ee0> False
+116 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f65259e9880> False
+117 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f65259e9c40> False
+118 <keras.layers.regularization.dropout.Dropout object at 0x7f6525a50d60> False
+119 <keras.layers.merging.add.Add object at 0x7f6525a5bdf0> False
+120 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525ae1040> False
+121 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525ad8d00> False
+122 <keras.layers.core.activation.Activation object at 0x7f652b32dcd0> False
+123 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f652931f430> False
+124 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b145970> False
+125 <keras.layers.core.activation.Activation object at 0x7f652b12d8e0> False
+126 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f652af9a1f0> False
+127 <keras.layers.reshaping.reshape.Reshape object at 0x7f652afa4fa0> False
+128 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652afb8be0> False
+129 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652af4cd30> False
+130 <keras.layers.merging.multiply.Multiply object at 0x7f652af56100> False
+131 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652af6eb80> False
+132 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652af19520> False
+133 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652af19640> False
+134 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652af10520> False
+135 <keras.layers.core.activation.Activation object at 0x7f652b2285b0> False
+136 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f652b006640> False
+137 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652afe9d30> False
+138 <keras.layers.core.activation.Activation object at 0x7f652afd7310> False
+139 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f652afd78e0> False
+140 <keras.layers.reshaping.reshape.Reshape object at 0x7f652afe9ac0> False
+141 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b01f790> False
+142 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b01f700> False
+143 <keras.layers.merging.multiply.Multiply object at 0x7f652b01f130> False
+144 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b035a00> False
+145 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b035520> False
+146 <keras.layers.regularization.dropout.Dropout object at 0x7f652b02aa00> False
+147 <keras.layers.merging.add.Add object at 0x7f652b031880> False
+148 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b031130> False
+149 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b031be0> False
+150 <keras.layers.core.activation.Activation object at 0x7f652b03b910> False
+151 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525a35670> False
+152 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652aff1850> False
+153 <keras.layers.core.activation.Activation object at 0x7f652affda60> False
+154 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525c2c700> False
+155 <keras.layers.reshaping.reshape.Reshape object at 0x7f6525ba7250> False
+156 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525ca2fd0> False
+157 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525c381f0> False
+158 <keras.layers.merging.multiply.Multiply object at 0x7f6525c38400> False
+159 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b031c40> False
+160 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525ca2970> False
+161 <keras.layers.regularization.dropout.Dropout object at 0x7f652afe2a60> False
+162 <keras.layers.merging.add.Add object at 0x7f652b01f2e0> False
+163 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525a7a4f0> False
+164 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b02a0d0> False
+165 <keras.layers.core.activation.Activation object at 0x7f652b115310> False
+166 <keras.layers.reshaping.zero_padding2d.ZeroPadding2D object at 0x7f6525c56820> False
+167 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6525cc1c70> False
+168 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525c9b610> False
+169 <keras.layers.core.activation.Activation object at 0x7f6525c9b040> False
+170 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6525c98bb0> False
+171 <keras.layers.reshaping.reshape.Reshape object at 0x7f652b070e80> False
+172 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525c98370> False
+173 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6522947fa0> False
+174 <keras.layers.merging.multiply.Multiply object at 0x7f652afce7f0> False
+175 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652affebb0> False
+176 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525c33fa0> False
+177 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525c83040> False
+178 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525c83670> False
+179 <keras.layers.core.activation.Activation object at 0x7f6525c834f0> False
+180 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f652a2ff310> False
+181 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525c8a9d0> False
+182 <keras.layers.core.activation.Activation object at 0x7f6525c90fa0> False
+183 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f652b2a74f0> False
+184 <keras.layers.reshaping.reshape.Reshape object at 0x7f652b2bcc70> False
+185 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6529772a60> False
+186 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525c7c910> False
+187 <keras.layers.merging.multiply.Multiply object at 0x7f652b416b20> False
+188 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525c501c0> False
+189 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f652b2f0b50> False
+190 <keras.layers.regularization.dropout.Dropout object at 0x7f65296817f0> False
+191 <keras.layers.merging.add.Add object at 0x7f653028e6a0> False
+192 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652965c940> False
+193 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525c7ca00> False
+194 <keras.layers.core.activation.Activation object at 0x7f652966ad30> False
+195 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f652966abe0> False
+196 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f65298070d0> False
+197 <keras.layers.core.activation.Activation object at 0x7f652964e160> False
+198 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f652964efd0> False
+199 <keras.layers.reshaping.reshape.Reshape object at 0x7f652966a3a0> False
+200 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652965cd60> False
+201 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6523b81a30> False
+202 <keras.layers.merging.multiply.Multiply object at 0x7f652b014850> False
+203 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6522a7c910> False
+204 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6529782d00> False
+205 <keras.layers.regularization.dropout.Dropout object at 0x7f6529782970> False
+206 <keras.layers.merging.add.Add object at 0x7f6525cbbf10> False
+207 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f65297f0dc0> False
+208 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6529da4a60> False
+209 <keras.layers.core.activation.Activation object at 0x7f6529da43d0> False
+210 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f65297f0b50> False
+211 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525d26ac0> False
+212 <keras.layers.core.activation.Activation object at 0x7f6525d26a90> False
+213 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6529caf280> False
+214 <keras.layers.reshaping.reshape.Reshape object at 0x7f6529cd73a0> False
+215 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525cc1490> False
+216 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6529cd7cd0> False
+217 <keras.layers.merging.multiply.Multiply object at 0x7f6529d49160> False
+218 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6529ce1160> False
+219 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6529d249d0> False
+220 <keras.layers.regularization.dropout.Dropout object at 0x7f6529d01f40> False
+221 <keras.layers.merging.add.Add object at 0x7f6529d01490> False
+222 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f652b03bd60> False
+223 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6529ce1850> False
+224 <keras.layers.core.activation.Activation object at 0x7f6529d0eaf0> False
+225 <keras.layers.convolutional.depthwise_conv2d.DepthwiseConv2D object at 0x7f6529d0e970> False
+226 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6529cf1040> False
+227 <keras.layers.core.activation.Activation object at 0x7f6526f6a6a0> False
+228 <keras.layers.pooling.global_average_pooling2d.GlobalAveragePooling2D object at 0x7f6529d6ae80> True
+229 <keras.layers.reshaping.reshape.Reshape object at 0x7f6529cf1a00> True
+230 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6525d090a0> True
+231 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6596bed9d0> True
+232 <keras.layers.merging.multiply.Multiply object at 0x7f6529c9c0a0> True
+233 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f65302b7e20> True
+234 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f65303858e0> True
+235 <keras.layers.convolutional.conv2d.Conv2D object at 0x7f6529caf310> True
+236 <keras.layers.normalization.batch_normalization.BatchNormalization object at 0x7f6525aa5f70> True
+237 <keras.layers.core.activation.Activation object at 0x7f6525aa56a0> True
+[ ]
+#compile
+model_2.compile(loss="categorical_crossentropy",
+                optimizer=tf.keras.optimizers.Adam(lr=0.0001),
+                metrics=["accuracy"])
+
+
+/usr/local/lib/python3.8/dist-packages/keras/optimizers/optimizer_v2/adam.py:110: UserWarning: The `lr` argument is deprecated, use `learning_rate` instead.
+  super(Adam, self).__init__(name, **kwargs)
+[ ]
+#continue and fine tune our model
+fine_tune_epochs=initial_epochs+5
+
+#fit model_4
+history_10_classes_full=model_2.fit(train_all_data_classes,
+            epochs=fine_tune_epochs,
+            validation_data=test_data,
+            validation_steps=int(0.25*len(test_data)),
+            initial_epoch=history_10_percent_aug.epoch[-1],
+            callbacks=[create_tensorboard_callback(dir_name="transfer_learning",
+                                                   experiment_name="full_classes_fine_tune_class_10")])
+Saving TensorBoard log files to: transfer_learning/full_classes_fine_tune_class_10/20230107-064430
+Epoch 5/10
+235/235 [==============================] - ETA: 0s - loss: 0.6345 - accuracy: 0.7995WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+235/235 [==============================] - 579s 2s/step - loss: 0.6345 - accuracy: 0.7995 - val_loss: 0.3654 - val_accuracy: 0.8816
+Epoch 6/10
+235/235 [==============================] - 584s 2s/step - loss: 0.5127 - accuracy: 0.8368 - val_loss: 0.3519 - val_accuracy: 0.8783
+Epoch 7/10
+235/235 [==============================] - 574s 2s/step - loss: 0.4604 - accuracy: 0.8520 - val_loss: 0.3218 - val_accuracy: 0.8931
+Epoch 8/10
+235/235 [==============================] - 586s 2s/step - loss: 0.4100 - accuracy: 0.8695 - val_loss: 0.3094 - val_accuracy: 0.9013
+Epoch 9/10
+235/235 [==============================] - 579s 2s/step - loss: 0.3792 - accuracy: 0.8787 - val_loss: 0.2938 - val_accuracy: 0.9062
+Epoch 10/10
+235/235 [==============================] - 583s 2s/step - loss: 0.3487 - accuracy: 0.8851 - val_loss: 0.2798 - val_accuracy: 0.9095
+[ ]
+#let's evaluate on all the data
+result__fine_tune_full_data=model_2.evaluate(test_data)
+result__fine_tune_full_data
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+WARNING:tensorflow:Model was constructed with shape (None, 512, 3) for input KerasTensor(type_spec=TensorSpec(shape=(None, 512, 3), dtype=tf.uint8, name='random_flip_input'), name='random_flip_input', description="created by layer 'random_flip_input'"), but it was called on an input with incompatible shape (None, 224, 224, 3).
+79/79 [==============================] - 159s 2s/step - loss: 0.2782 - accuracy: 0.9088
+[0.27824822068214417, 0.9088000059127808]
+[ ]
+#how fine tuning go with more data
+compare_historys(history_10_percent_aug,history_10_classes_full,initial_epochs=5)
+
+viewing our model data on the tensorboard
+Note:- Anythings you upload to the tensorboard.dev is going to public . so if you have private data , do not upload
+
+[ ]
+#view tensorboard logs of transfer learning modelling experiments (should ~4 model)
+!tensorboard dev upload --logdir ./transfer_learning \
+ --name "Transfer Learning model with 5 different models"\
+ --description "A series of different tranfer learning experirence with different model and tryin them out with fine-tuning"\
+ --one_shot
+2023-01-07 08:09:27.714446: E tensorflow/stream_executor/cuda/cuda_driver.cc:271] failed call to cuInit: CUDA_ERROR_NO_DEVICE: no CUDA-capable device is detected
+
+New experiment created. View your TensorBoard at: https://tensorboard.dev/experiment/ODA3ZjWHQ2OgOQNrcb2rSQ/
+
+[2023-01-07T08:09:28] Started scanning logdir.
+[2023-01-07T08:09:33] Total uploaded: 126 scalars, 0 tensors, 5 binary objects (4.2 MB)
+[2023-01-07T08:09:33] Done scanning logdir.
+
+
+Done. View your TensorBoard at https://tensorboard.dev/experiment/ODA3ZjWHQ2OgOQNrcb2rSQ/
+My tensorboard experiments is to be found in:- https://tensorboard.dev/experiment/ODA3ZjWHQ2OgOQNrcb2rSQ/
+
+[ ]
+!tensorboard dev list
+2023-01-07 08:12:46.426167: E tensorflow/stream_executor/cuda/cuda_driver.cc:271] failed call to cuInit: CUDA_ERROR_NO_DEVICE: no CUDA-capable device is detected
+https://tensorboard.dev/experiment/ODA3ZjWHQ2OgOQNrcb2rSQ/
+	Name                 Transfer Learning model with 5 different models
+	Description          A series of different tranfer learning experirence with different model and tryin them out with fine-tuning
+	Id                   ODA3ZjWHQ2OgOQNrcb2rSQ
+	Created              2023-01-07 08:09:28 (3 minutes ago)
+	Updated              2023-01-07 08:09:33 (3 minutes ago)
+	Runs                 9
+	Tags                 5
+	Scalars              126
+	Tensor bytes         0
+	Binary object bytes  4357407
+https://tensorboard.dev/experiment/DGNmOBqHQiWMQlK3quP03w/
+	Name                 Transfer Learning model with 5 different models
+	Description          A series of different tranfer learning experirence with different model and tryin them out with fine-tuning
+	Id                   DGNmOBqHQiWMQlK3quP03w
+	Created              2023-01-07 08:07:01 (5 minutes ago)
+	Updated              2023-01-07 08:07:02 (5 minutes ago)
+	Runs                 2
+	Tags                 5
+	Scalars              36
+	Tensor bytes         0
+	Binary object bytes  896133
+https://tensorboard.dev/experiment/vxbKmC1DSk2dn4r6KnMRXA/
+	Name                 EfficientNetB0 vs ResNet50V2
+	Description          comparing two different TF Hub features model architectures using 10 percent of the data
+	Id                   vxbKmC1DSk2dn4r6KnMRXA
+	Created              2023-01-05 14:54:56
+	Updated              2023-01-05 14:55:05
+	Runs                 7
+	Tags                 5
+	Scalars              66
+	Tensor bytes         0
+	Binary object bytes  14062807
+Total: 3 experiment(s)
+Colab paid products - Cancel contracts here
