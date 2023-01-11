@@ -1,0 +1,8 @@
+#contact .rows{
+    flex-direction: column;
+}
+#contact .left{
+   position: absolute;
+   top:133px;
+    /* padding: 13333px; */
+}
