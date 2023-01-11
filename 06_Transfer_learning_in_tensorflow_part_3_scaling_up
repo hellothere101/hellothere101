@@ -1,0 +1,2710 @@
+Loading...
+06_Transfer_learning_in_tensorflow_part_3_scaling_up.ipynb
+06_Transfer_learning_in_tensorflow_part_3_scaling_up.ipynb_
+Tensorflow Learning with Tensorflow part 3: scaling up(food vision mini)
+we have seen the power of tranfer learing feature extration and fine-tuning ,now it is time to scale up. now it is time to scale up all of the classes in Food101.(101 total class of food).
+
+our goal is to beat the original food101 paper with 10% of the training data (leveraging the power of the deep learning).
+
+Original Food101 paper: https://data.vision.ee.ethz.ch/cvl/datasets_extra/food-101/
+
+create the helper function
+In Previous notebooks we have created a series of helper functions to do different tasks, let's download them.
+
+[ ]
+!wget https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/extras/helper_functions.py
+--2023-01-08 09:52:02--  https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/extras/helper_functions.py
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.108.133, 185.199.109.133, 185.199.110.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.108.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 10246 (10K) [text/plain]
+Saving to: ‘helper_functions.py’
+
+helper_functions.py 100%[===================>]  10.01K  --.-KB/s    in 0s      
+
+2023-01-08 09:52:02 (61.8 MB/s) - ‘helper_functions.py’ saved [10246/10246]
+
+[ ]
+#import series of helper functions for now notebook
+from helper_functions import create_tensorboard_callback,plot_loss_curves,unzip_data,compare_historys,walk_through_dir
+101 food classes working with less data
+our goal is to beat the original food101 paper with 10% of the training data, so let's download it.
+
+The data we are downloading is coming from the original food101 dataset but has been preprocessed using the image_data_modification:-https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/extras/image_data_modification.ipynb
+
+[ ]
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/101_food_classes_10_percent.zip
+--2023-01-08 09:52:07--  https://storage.googleapis.com/ztm_tf_course/food_vision/101_food_classes_10_percent.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 173.194.214.128, 173.194.215.128, 173.194.216.128, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|173.194.214.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1625420029 (1.5G) [application/zip]
+Saving to: ‘101_food_classes_10_percent.zip’
+
+101_food_classes_10 100%[===================>]   1.51G   213MB/s    in 7.4s    
+
+2023-01-08 09:52:15 (210 MB/s) - ‘101_food_classes_10_percent.zip’ saved [1625420029/1625420029]
+
+[ ]
+unzip_data("101_food_classes_10_percent.zip")
+[ ]
+train_dir="101_food_classes_10_percent/train/"
+test_dir="101_food_classes_10_percent/test/"
+[ ]
+#how many image and classes are there?
+walk_through_dir("101_food_classes_10_percent")
+There are 2 directories and 0 images in '101_food_classes_10_percent'.
+There are 101 directories and 0 images in '101_food_classes_10_percent/train'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/cup_cakes'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/french_onion_soup'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/hummus'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/bibimbap'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/pad_thai'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/eggs_benedict'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/hamburger'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/fish_and_chips'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/donuts'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/greek_salad'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/bread_pudding'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/escargots'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/chocolate_mousse'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/peking_duck'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/falafel'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/beet_salad'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/foie_gras'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/creme_brulee'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/lobster_bisque'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/steak'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/onion_rings'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/panna_cotta'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/mussels'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/tiramisu'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/bruschetta'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/poutine'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/beignets'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/spring_rolls'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/apple_pie'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/cheesecake'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/hot_dog'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/frozen_yogurt'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/baklava'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/pizza'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/ceviche'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/spaghetti_carbonara'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/breakfast_burrito'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/sushi'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/gnocchi'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/ravioli'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/macarons'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/croque_madame'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/grilled_cheese_sandwich'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/huevos_rancheros'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/ice_cream'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/macaroni_and_cheese'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/tuna_tartare'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/guacamole'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/seaweed_salad'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/garlic_bread'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/waffles'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/pork_chop'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/cheese_plate'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/tacos'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/caesar_salad'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/pho'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/sashimi'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/omelette'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/cannoli'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/ramen'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/edamame'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/fried_rice'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/scallops'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/red_velvet_cake'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/churros'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/club_sandwich'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/chicken_quesadilla'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/oysters'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/takoyaki'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/grilled_salmon'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/pancakes'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/prime_rib'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/miso_soup'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/french_fries'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/french_toast'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/baby_back_ribs'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/fried_calamari'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/dumplings'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/chicken_wings'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/beef_carpaccio'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/nachos'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/gyoza'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/lobster_roll_sandwich'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/carrot_cake'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/filet_mignon'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/risotto'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/deviled_eggs'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/pulled_pork_sandwich'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/caprese_salad'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/samosa'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/paella'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/lasagna'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/chicken_curry'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/clam_chowder'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/shrimp_and_grits'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/hot_and_sour_soup'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/spaghetti_bolognese'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/strawberry_shortcake'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/chocolate_cake'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/crab_cakes'.
+There are 0 directories and 75 images in '101_food_classes_10_percent/train/beef_tartare'.
+There are 101 directories and 0 images in '101_food_classes_10_percent/test'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/cup_cakes'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/french_onion_soup'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/hummus'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/bibimbap'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/pad_thai'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/eggs_benedict'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/hamburger'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/fish_and_chips'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/donuts'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/greek_salad'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/bread_pudding'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/escargots'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/chocolate_mousse'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/peking_duck'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/falafel'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/beet_salad'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/foie_gras'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/creme_brulee'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/lobster_bisque'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/steak'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/onion_rings'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/panna_cotta'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/mussels'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/tiramisu'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/bruschetta'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/poutine'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/beignets'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/spring_rolls'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/apple_pie'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/cheesecake'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/hot_dog'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/frozen_yogurt'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/baklava'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/pizza'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/ceviche'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/spaghetti_carbonara'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/breakfast_burrito'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/sushi'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/gnocchi'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/ravioli'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/macarons'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/croque_madame'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/grilled_cheese_sandwich'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/huevos_rancheros'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/ice_cream'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/macaroni_and_cheese'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/tuna_tartare'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/guacamole'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/seaweed_salad'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/garlic_bread'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/waffles'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/pork_chop'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/cheese_plate'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/tacos'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/caesar_salad'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/pho'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/sashimi'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/omelette'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/cannoli'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/ramen'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/edamame'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/fried_rice'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/scallops'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/red_velvet_cake'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/churros'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/club_sandwich'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/chicken_quesadilla'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/oysters'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/takoyaki'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/grilled_salmon'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/pancakes'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/prime_rib'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/miso_soup'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/french_fries'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/french_toast'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/baby_back_ribs'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/fried_calamari'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/dumplings'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/chicken_wings'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/beef_carpaccio'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/nachos'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/gyoza'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/lobster_roll_sandwich'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/carrot_cake'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/filet_mignon'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/risotto'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/deviled_eggs'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/pulled_pork_sandwich'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/caprese_salad'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/samosa'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/paella'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/lasagna'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/chicken_curry'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/clam_chowder'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/shrimp_and_grits'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/hot_and_sour_soup'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/spaghetti_bolognese'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/strawberry_shortcake'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/chocolate_cake'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/crab_cakes'.
+There are 0 directories and 250 images in '101_food_classes_10_percent/test/beef_tartare'.
+[ ]
+#setup our data inputs
+import tensorflow as tf
+train_data_all_10_percent=tf.keras.preprocessing.image_dataset_from_directory(directory=train_dir,
+                                                               image_size=(224,224),
+                                                               batch_size=32,
+                                                               label_mode="categorical")
+
+test_data=tf.keras.preprocessing.image_dataset_from_directory(directory=test_dir,
+                                                               image_size=(224,224),
+                                                               batch_size=32,
+                                                               label_mode="categorical",
+                                                               shuffle=False)
+Found 7575 files belonging to 101 classes.
+Found 25250 files belonging to 101 classes.
+Train a big dog model with transfer learning on 10% of 101 food classes
+Here are the steps we are going to take:
+
+create a Model checkpoint callback
+create a data augmentation layer to build in right into model
+Build a headless(no top layers) function EfficientNetB0 backbone model(we will create our own backbone model)
+compile our model
+feature extract for 5 epochs for passes (5 epochs on the train_dataset and validated on the 15% of the test_dataset to save epoch time)
+[ ]
+# Create a checkpoint model
+checkpoint_path="101_classes_10_percent_data_model_checkpoint"
+checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(checkpoint_path,
+                                                       save_weight_only=True,
+                                                       monitor="val_accuracy",
+                                                       save_best_only=True)
+[ ]
+#create data augmentation layer to incorporate it right into model
+from tensorflow.keras import layers
+from tensorflow.keras.layers.experimental import preprocessing
+from tensorflow.keras.models import Sequential
+
+data_augmentation=Sequential([
+    preprocessing.RandomFlip("horizontal"),
+    preprocessing.RandomRotation(0.2),
+    preprocessing.RandomZoom(0.2),
+    preprocessing.RandomWidth(0.2),
+    preprocessing.RandomHeight(0.2)
+    #skip this because effecientet has inbuild recaling Preprocessing.rescale(1/255.) 
+],name="data_augmnetation")
+
+[ ]
+#let's us create the base model now
+base_model=tf.keras.applications.EfficientNetB0(include_top=False)
+base_model.trainable=False
+
+#create the inout layer
+input=tf.keras.Input(shape=(224,224,3),name="input_layer")
+
+#now finally apply data augmentation
+x=data_augmentation(input)
+
+#but our input in base model
+x=base_model(x,training=False)
+
+#put it in our GlobalAveragePooling2D()
+x=tf.keras.layers.GlobalAveragePooling2D(name="GlobalAveragePooling2D")(x)
+
+#now finally make the output layer
+outputs=tf.keras.layers.Dense(len(train_data_all_10_percent.class_names),activation="softmax",name="output_layer")(x)
+
+#build our model
+model=tf.keras.Model(input,outputs)
+
+
+
+Downloading data from https://storage.googleapis.com/keras-applications/efficientnetb0_notop.h5
+16705208/16705208 [==============================] - 0s 0us/step
+[ ]
+#get the summary of our model
+model.summary()
+Model: "model"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_layer (InputLayer)    [(None, 224, 224, 3)]     0         
+                                                                 
+ data_augmnetation (Sequenti  (None, 224, 224, 3)      0         
+ al)                                                             
+                                                                 
+ efficientnetb0 (Functional)  (None, None, None, 1280)  4049571  
+                                                                 
+ GlobalAveragePooling2D (Glo  (None, 1280)             0         
+ balAveragePooling2D)                                            
+                                                                 
+ output_layer (Dense)        (None, 101)               129381    
+                                                                 
+=================================================================
+Total params: 4,178,952
+Trainable params: 129,381
+Non-trainable params: 4,049,571
+_________________________________________________________________
+[ ]
+#compile the model
+model.compile(loss="categorical_crossentropy",
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+[ ]
+#fit the model
+initial_epochs=5
+history_model=model.fit(train_data_all_10_percent,
+            epochs=initial_epochs,
+            validation_data=test_data,
+            validation_steps=int(0.15*len(test_data)),
+            callbacks=[checkpoint_callback])
+
+[ ]
+#evaluate on the whole test data set
+fine_tuning_results=model.evaluate(test_data)
+[ ]
+fine_tuning_results
+[ ]
+#plot the loss curves
+plot_loss_curves(history_model)
+fine-tuning
+[ ]
+# Unfreeze all of the layers in the base model
+base_model.trainable = True
+
+# Refreeze every layer except for the last 5
+for layer in base_model.layers[:-5]:
+  layer.trainable = False
+[ ]
+#recompile the model with the lower learning rate
+model.compile(loss="categorical_crossentropy",
+              optimizer=tf.keras.optimizers.Adam(lr=0.0001),
+              metrics=["accuracy"])
+[ ]
+#what are the layers trainable in test model
+for layer in model.layers:
+  print(layer.name,layer.trainable)
+[ ]
+for layer_number,layers in enumerate(base_model.layers):
+  print(layer_number,layer.name,layer.trainable )
+[ ]
+#fit the model
+fine_tune_epochs=5+initial_epochs
+
+history_fine_tune_model=model.fit(train_data_all_10_percent,
+          epochs=fine_tune_epochs,
+          validation_data=test_data,
+          validation_steps=(0.15*len(test_data)),
+          initial_epoch=history_model.epoch[-1])
+[ ]
+#evaluate on the test data
+all_classes_10_percent_fine_tune_results=model.evaluate(test_data)
+[ ]
+all_classes_10_percent_fine_tune_results
+[ ]
+#let's us compare history of feature extraction model with fine-tuning model
+compare_historys(history_model,history_fine_tune_model)
+saving and loading our model
+to use our model in an external application , we will need to save it and export it somewhere
+
+[ ]
+#save our fine tuned model
+model.save("/content/drive/MyDrive/Colab Notebooks")
+[ ]
+#load and evaluate the saved model
+loaded_model=tf.keras.models.load_model("/content/drive/MyDrive/Colab Notebooks")
+[ ]
+#evaluate our loaded model and compare it  performance to pre-saved model
+loaded_model_results=loaded_model.evaluate(test_data)
+loaded_model_results
+[ ]
+all_classes_10_percent_fine_tune_results
+Evaluate the performance of the big dog model across all different classes
+let's make some predictions. And visualize,visualize and visualize and later find out which prediction where wrong
+
+[ ]
+#download preloaded model(one that was prepared earlier, so all prediction are similar)
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/06_101_food_class_10_percent_saved_big_dog_model.zip
+--2023-01-08 10:58:44--  https://storage.googleapis.com/ztm_tf_course/food_vision/06_101_food_class_10_percent_saved_big_dog_model.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 172.217.193.128, 172.217.204.128, 172.217.203.128, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|172.217.193.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 46760742 (45M) [application/zip]
+Saving to: ‘06_101_food_class_10_percent_saved_big_dog_model.zip’
+
+06_101_food_class_1 100%[===================>]  44.59M  97.8MB/s    in 0.5s    
+
+2023-01-08 10:58:44 (97.8 MB/s) - ‘06_101_food_class_10_percent_saved_big_dog_model.zip’ saved [46760742/46760742]
+
+[ ]
+unzip_data("/content/06_101_food_class_10_percent_saved_big_dog_model.zip")
+[ ]
+#load the saved model
+import tensorflow as tf
+model=tf.keras.models.load_model("/content/06_101_food_class_10_percent_saved_big_dog_model")
+WARNING:tensorflow:SavedModel saved prior to TF 2.5 detected when loading Keras model. Please ensure that you are saving the model with model.save() or tf.keras.models.save_model(), *NOT* tf.saved_model.save(). To confirm, there should be a file named "keras_metadata.pb" in the SavedModel directory.
+WARNING:absl:Importing a function (__inference_block6c_expand_activation_layer_call_and_return_conditional_losses_419470) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_efficientnetb0_layer_call_and_return_conditional_losses_446460) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2a_activation_layer_call_and_return_conditional_losses_450449) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2a_expand_activation_layer_call_and_return_conditional_losses_415747) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2b_activation_layer_call_and_return_conditional_losses_416083) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2b_activation_layer_call_and_return_conditional_losses_450775) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4a_activation_layer_call_and_return_conditional_losses_451847) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5a_expand_activation_layer_call_and_return_conditional_losses_417915) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4a_se_reduce_layer_call_and_return_conditional_losses_451887) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4c_expand_activation_layer_call_and_return_conditional_losses_452467) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_functional_17_layer_call_and_return_conditional_losses_438312) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4c_expand_activation_layer_call_and_return_conditional_losses_417583) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5c_activation_layer_call_and_return_conditional_losses_418582) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6a_se_reduce_layer_call_and_return_conditional_losses_454031) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block7a_activation_layer_call_and_return_conditional_losses_455436) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block1a_activation_layer_call_and_return_conditional_losses_415524) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3b_activation_layer_call_and_return_conditional_losses_451474) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4a_expand_activation_layer_call_and_return_conditional_losses_451768) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_efficientnetb0_layer_call_and_return_conditional_losses_441729) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6b_se_reduce_layer_call_and_return_conditional_losses_454357) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3b_activation_layer_call_and_return_conditional_losses_416695) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6b_expand_activation_layer_call_and_return_conditional_losses_454238) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_functional_17_layer_call_and_return_conditional_losses_436681) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2a_activation_layer_call_and_return_conditional_losses_415804) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5a_activation_layer_call_and_return_conditional_losses_452919) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5c_se_reduce_layer_call_and_return_conditional_losses_453658) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_efficientnetb0_layer_call_and_return_conditional_losses_448082) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6a_activation_layer_call_and_return_conditional_losses_418915) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5c_expand_activation_layer_call_and_return_conditional_losses_453539) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4c_se_reduce_layer_call_and_return_conditional_losses_452586) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block1a_se_reduce_layer_call_and_return_conditional_losses_450163) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5a_se_reduce_layer_call_and_return_conditional_losses_418018) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block7a_expand_activation_layer_call_and_return_conditional_losses_455357) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4c_activation_layer_call_and_return_conditional_losses_417639) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3a_se_reduce_layer_call_and_return_conditional_losses_451188) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block7a_activation_layer_call_and_return_conditional_losses_420190) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_stem_activation_layer_call_and_return_conditional_losses_415468) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block7a_se_reduce_layer_call_and_return_conditional_losses_455476) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4b_se_reduce_layer_call_and_return_conditional_losses_417354) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4b_se_reduce_layer_call_and_return_conditional_losses_452213) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4b_activation_layer_call_and_return_conditional_losses_452173) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block1a_se_reduce_layer_call_and_return_conditional_losses_415571) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3b_se_reduce_layer_call_and_return_conditional_losses_451514) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5a_activation_layer_call_and_return_conditional_losses_417971) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6c_se_reduce_layer_call_and_return_conditional_losses_454730) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3b_se_reduce_layer_call_and_return_conditional_losses_416742) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2a_se_reduce_layer_call_and_return_conditional_losses_450489) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3a_activation_layer_call_and_return_conditional_losses_451148) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5b_expand_activation_layer_call_and_return_conditional_losses_418194) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3a_se_reduce_layer_call_and_return_conditional_losses_416463) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_efficientnetb0_layer_call_and_return_conditional_losses_429711) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_efficientnetb0_layer_call_and_return_conditional_losses_443351) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5c_expand_activation_layer_call_and_return_conditional_losses_418526) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5b_activation_layer_call_and_return_conditional_losses_453245) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3a_activation_layer_call_and_return_conditional_losses_416416) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_efficientnetb0_layer_call_and_return_conditional_losses_428089) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2b_expand_activation_layer_call_and_return_conditional_losses_416027) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6a_expand_activation_layer_call_and_return_conditional_losses_453912) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4c_activation_layer_call_and_return_conditional_losses_452546) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block7a_se_reduce_layer_call_and_return_conditional_losses_420237) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5c_se_reduce_layer_call_and_return_conditional_losses_418629) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3a_expand_activation_layer_call_and_return_conditional_losses_416359) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3b_expand_activation_layer_call_and_return_conditional_losses_451395) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6c_activation_layer_call_and_return_conditional_losses_454690) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6d_se_reduce_layer_call_and_return_conditional_losses_419905) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6c_activation_layer_call_and_return_conditional_losses_419526) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5b_se_reduce_layer_call_and_return_conditional_losses_418297) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4b_expand_activation_layer_call_and_return_conditional_losses_452094) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference__wrapped_model_408990) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5c_activation_layer_call_and_return_conditional_losses_453618) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6d_expand_activation_layer_call_and_return_conditional_losses_454984) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2b_expand_activation_layer_call_and_return_conditional_losses_450696) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6a_expand_activation_layer_call_and_return_conditional_losses_418858) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_stem_activation_layer_call_and_return_conditional_losses_450044) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5b_activation_layer_call_and_return_conditional_losses_418250) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6a_activation_layer_call_and_return_conditional_losses_453991) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5b_se_reduce_layer_call_and_return_conditional_losses_453285) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4a_expand_activation_layer_call_and_return_conditional_losses_416971) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_top_activation_layer_call_and_return_conditional_losses_455683) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2a_se_reduce_layer_call_and_return_conditional_losses_415851) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5b_expand_activation_layer_call_and_return_conditional_losses_453166) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_top_activation_layer_call_and_return_conditional_losses_420413) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block1a_activation_layer_call_and_return_conditional_losses_450123) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4a_se_reduce_layer_call_and_return_conditional_losses_417075) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5a_expand_activation_layer_call_and_return_conditional_losses_452840) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4b_activation_layer_call_and_return_conditional_losses_417307) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6d_activation_layer_call_and_return_conditional_losses_455063) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6d_expand_activation_layer_call_and_return_conditional_losses_419802) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6d_activation_layer_call_and_return_conditional_losses_419858) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block5a_se_reduce_layer_call_and_return_conditional_losses_452959) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3a_expand_activation_layer_call_and_return_conditional_losses_451069) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2a_expand_activation_layer_call_and_return_conditional_losses_450370) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6b_expand_activation_layer_call_and_return_conditional_losses_419138) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6b_activation_layer_call_and_return_conditional_losses_419194) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6c_se_reduce_layer_call_and_return_conditional_losses_419573) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block7a_expand_activation_layer_call_and_return_conditional_losses_420134) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4a_activation_layer_call_and_return_conditional_losses_417028) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6c_expand_activation_layer_call_and_return_conditional_losses_454611) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block3b_expand_activation_layer_call_and_return_conditional_losses_416639) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4c_se_reduce_layer_call_and_return_conditional_losses_417686) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block4b_expand_activation_layer_call_and_return_conditional_losses_417251) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6d_se_reduce_layer_call_and_return_conditional_losses_455103) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2b_se_reduce_layer_call_and_return_conditional_losses_450815) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block2b_se_reduce_layer_call_and_return_conditional_losses_416130) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6b_activation_layer_call_and_return_conditional_losses_454317) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6a_se_reduce_layer_call_and_return_conditional_losses_418962) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+WARNING:absl:Importing a function (__inference_block6b_se_reduce_layer_call_and_return_conditional_losses_419241) with ops with unsaved custom gradients. Will likely fail if a gradient is requested.
+[ ]
+#evaluate the loaded model
+result_downloaded_model=model.evaluate(test_data)
+result_downloaded_model
+790/790 [==============================] - 1603s 2s/step - loss: 1.8027 - accuracy: 0.6078
+[1.802720308303833, 0.6077623963356018]
+Making prediction on our trained model
+[ ]
+#Make prediction with our model
+preds_probs= model.predict(test_data,verbose=1) #to see verbosity to see how long is left
+
+790/790 [==============================] - 1604s 2s/step
+[ ]
+len(test_data)
+790
+[ ]
+#how many prediction are there
+len(preds_probs)
+25250
+[ ]
+#what is the shape of our prediction
+preds_probs.shape
+(25250, 101)
+[ ]
+#let's see what the first 10 prediction looks like
+preds_probs[:10]
+array([[5.9541944e-02, 3.5742594e-06, 4.1377328e-02, ..., 1.4138719e-09,
+        8.3531624e-05, 3.0897509e-03],
+       [9.6401662e-01, 1.3753112e-09, 8.4779633e-04, ..., 5.4287142e-05,
+        7.8361892e-12, 9.8465458e-10],
+       [9.5925856e-01, 3.2533677e-05, 1.4867130e-03, ..., 7.1891736e-07,
+        5.4396480e-07, 4.0275841e-05],
+       ...,
+       [4.7313458e-01, 1.2931262e-07, 1.4805597e-03, ..., 5.9750176e-04,
+        6.6968991e-05, 2.3469260e-05],
+       [4.4571634e-02, 4.7265630e-07, 1.2258522e-01, ..., 6.3499192e-06,
+        7.5318326e-06, 3.6778755e-03],
+       [7.2438973e-01, 1.9249884e-09, 5.2311050e-05, ..., 1.2291416e-03,
+        1.5792809e-09, 9.6395401e-05]], dtype=float32)
+[ ]
+#what is the first prediction probability look likes
+preds_probs[0],len(preds_probs[0]),sum(preds_probs[0])
+(array([5.95419444e-02, 3.57425938e-06, 4.13773283e-02, 1.06607478e-09,
+        8.16160650e-09, 8.66405614e-09, 8.09279641e-07, 8.56528970e-07,
+        1.98590715e-05, 8.09789185e-07, 3.17281956e-09, 9.86756163e-07,
+        2.85325135e-04, 7.80501552e-10, 7.42300879e-04, 3.89167071e-05,
+        6.47414799e-06, 2.49773507e-06, 3.78914920e-05, 2.06784435e-07,
+        1.55387024e-05, 8.15070166e-07, 2.62306162e-06, 2.00108730e-07,
+        8.38276890e-07, 5.42165481e-06, 3.73913872e-06, 1.31505207e-08,
+        2.77614547e-03, 2.80516197e-05, 6.85633939e-10, 2.55750019e-05,
+        1.66889440e-04, 7.64083741e-10, 4.04534920e-04, 1.31508200e-08,
+        1.79575306e-06, 1.44483658e-06, 2.30632722e-02, 8.24678011e-07,
+        8.53668212e-07, 1.71385943e-06, 7.05259708e-06, 1.84024991e-08,
+        2.85538675e-07, 7.94832977e-06, 2.06820437e-06, 1.85253626e-07,
+        3.36199939e-08, 3.15228215e-04, 1.04111014e-05, 8.54503980e-07,
+        8.47417772e-01, 1.05555855e-05, 4.40947900e-07, 3.74048177e-05,
+        3.53066971e-05, 3.24893153e-05, 6.73148024e-05, 1.28527011e-08,
+        2.62199346e-10, 1.03182474e-05, 8.57443592e-05, 1.05699451e-06,
+        2.12935151e-06, 3.76380158e-05, 7.59742349e-08, 2.53408216e-04,
+        9.29069131e-07, 1.25982086e-04, 6.26229667e-06, 1.24590231e-08,
+        4.05196879e-05, 6.87281769e-08, 1.25463521e-06, 5.28874367e-08,
+        7.54255680e-08, 7.53990680e-05, 7.75411754e-05, 6.40266137e-07,
+        9.90350031e-07, 2.22260078e-05, 1.50141050e-05, 1.40386220e-07,
+        1.22326946e-05, 1.90448202e-02, 5.00002207e-05, 4.62266598e-06,
+        1.53883548e-07, 3.38244490e-07, 3.92285937e-09, 1.65639250e-07,
+        8.13216102e-05, 4.89657214e-06, 2.40682567e-07, 2.31243539e-05,
+        3.10411211e-04, 3.13803321e-05, 1.41387191e-09, 8.35316241e-05,
+        3.08975088e-03], dtype=float32), 101, 0.9999999672402556)
+our model ouputs prediction probability arrays (with N number of variables, where N is no of classes) for each sample passed to the predict model
+
+[ ]
+#we get one prediction probability per class(in our case there is 101 probabilities)
+print(f"Number of prediction probability for sample zero 0: {len(preds_probs[0])}")
+print(f"what prediction probability sample 0 looks like:\n {preds_probs[0]}")
+print(f"the class the highest predicted probability by the model 0: {preds_probs[0].argmax()}")
+Number of prediction probability for sample zero 0: 101
+what prediction probability sample 0 looks like:
+ [5.95419444e-02 3.57425938e-06 4.13773283e-02 1.06607478e-09
+ 8.16160650e-09 8.66405614e-09 8.09279641e-07 8.56528970e-07
+ 1.98590715e-05 8.09789185e-07 3.17281956e-09 9.86756163e-07
+ 2.85325135e-04 7.80501552e-10 7.42300879e-04 3.89167071e-05
+ 6.47414799e-06 2.49773507e-06 3.78914920e-05 2.06784435e-07
+ 1.55387024e-05 8.15070166e-07 2.62306162e-06 2.00108730e-07
+ 8.38276890e-07 5.42165481e-06 3.73913872e-06 1.31505207e-08
+ 2.77614547e-03 2.80516197e-05 6.85633939e-10 2.55750019e-05
+ 1.66889440e-04 7.64083741e-10 4.04534920e-04 1.31508200e-08
+ 1.79575306e-06 1.44483658e-06 2.30632722e-02 8.24678011e-07
+ 8.53668212e-07 1.71385943e-06 7.05259708e-06 1.84024991e-08
+ 2.85538675e-07 7.94832977e-06 2.06820437e-06 1.85253626e-07
+ 3.36199939e-08 3.15228215e-04 1.04111014e-05 8.54503980e-07
+ 8.47417772e-01 1.05555855e-05 4.40947900e-07 3.74048177e-05
+ 3.53066971e-05 3.24893153e-05 6.73148024e-05 1.28527011e-08
+ 2.62199346e-10 1.03182474e-05 8.57443592e-05 1.05699451e-06
+ 2.12935151e-06 3.76380158e-05 7.59742349e-08 2.53408216e-04
+ 9.29069131e-07 1.25982086e-04 6.26229667e-06 1.24590231e-08
+ 4.05196879e-05 6.87281769e-08 1.25463521e-06 5.28874367e-08
+ 7.54255680e-08 7.53990680e-05 7.75411754e-05 6.40266137e-07
+ 9.90350031e-07 2.22260078e-05 1.50141050e-05 1.40386220e-07
+ 1.22326946e-05 1.90448202e-02 5.00002207e-05 4.62266598e-06
+ 1.53883548e-07 3.38244490e-07 3.92285937e-09 1.65639250e-07
+ 8.13216102e-05 4.89657214e-06 2.40682567e-07 2.31243539e-05
+ 3.10411211e-04 3.13803321e-05 1.41387191e-09 8.35316241e-05
+ 3.08975088e-03]
+the class the highest predicted probability by the model 0: 52
+[ ]
+test_data.class_names[0]
+
+[ ]
+#get the pred probability class of each label
+pred_classes= preds_probs.argmax(axis=1)
+
+#how do they look
+pred_classes[:10]
+array([52,  0,  0, 80, 79, 61, 29,  0, 85,  0])
+[ ]
+#how many pred classes do we have 
+len(pred_classes)
+25250
+Now we have got a predictions array of all of our model's prediction to evaluate them,we need to compare them to the original test datasets labels.
+
+[ ]
+#to get our test labels we need to unravel our test_data batch batchdataset
+y_labels=[]
+for images,labels in test_data.unbatch():
+  y_labels.append(labels.numpy().argmax())
+y_labels[:10]
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[ ]
+#how many ylabels are there
+len(y_labels)
+25250
+evaluate our model's preediction
+one way we can check our model's prediction array is in same order as our test labels array to find the accuracy score
+
+[ ]
+result_downloaded_model
+[1.802720308303833, 0.6077623963356018]
+[ ]
+#let's us try sckit learn accuracy score function and see what it comes up with
+from sklearn.metrics import accuracy_score
+sklearn_accuracy=accuracy_score(y_true=y_labels,y_pred=pred_classes)
+sklearn_accuracy
+0.6077623762376237
+[ ]
+#does this metrics comes close to our model evaluation metrics
+import numpy as np
+np.isclose(result_downloaded_model[1],sklearn_accuracy)
+True
+let's get visual making the confusion matrix
+[ ]
+#create a list of class name
+class_name=test_data.class_names
+class_name
+['apple_pie',
+ 'baby_back_ribs',
+ 'baklava',
+ 'beef_carpaccio',
+ 'beef_tartare',
+ 'beet_salad',
+ 'beignets',
+ 'bibimbap',
+ 'bread_pudding',
+ 'breakfast_burrito',
+ 'bruschetta',
+ 'caesar_salad',
+ 'cannoli',
+ 'caprese_salad',
+ 'carrot_cake',
+ 'ceviche',
+ 'cheese_plate',
+ 'cheesecake',
+ 'chicken_curry',
+ 'chicken_quesadilla',
+ 'chicken_wings',
+ 'chocolate_cake',
+ 'chocolate_mousse',
+ 'churros',
+ 'clam_chowder',
+ 'club_sandwich',
+ 'crab_cakes',
+ 'creme_brulee',
+ 'croque_madame',
+ 'cup_cakes',
+ 'deviled_eggs',
+ 'donuts',
+ 'dumplings',
+ 'edamame',
+ 'eggs_benedict',
+ 'escargots',
+ 'falafel',
+ 'filet_mignon',
+ 'fish_and_chips',
+ 'foie_gras',
+ 'french_fries',
+ 'french_onion_soup',
+ 'french_toast',
+ 'fried_calamari',
+ 'fried_rice',
+ 'frozen_yogurt',
+ 'garlic_bread',
+ 'gnocchi',
+ 'greek_salad',
+ 'grilled_cheese_sandwich',
+ 'grilled_salmon',
+ 'guacamole',
+ 'gyoza',
+ 'hamburger',
+ 'hot_and_sour_soup',
+ 'hot_dog',
+ 'huevos_rancheros',
+ 'hummus',
+ 'ice_cream',
+ 'lasagna',
+ 'lobster_bisque',
+ 'lobster_roll_sandwich',
+ 'macaroni_and_cheese',
+ 'macarons',
+ 'miso_soup',
+ 'mussels',
+ 'nachos',
+ 'omelette',
+ 'onion_rings',
+ 'oysters',
+ 'pad_thai',
+ 'paella',
+ 'pancakes',
+ 'panna_cotta',
+ 'peking_duck',
+ 'pho',
+ 'pizza',
+ 'pork_chop',
+ 'poutine',
+ 'prime_rib',
+ 'pulled_pork_sandwich',
+ 'ramen',
+ 'ravioli',
+ 'red_velvet_cake',
+ 'risotto',
+ 'samosa',
+ 'sashimi',
+ 'scallops',
+ 'seaweed_salad',
+ 'shrimp_and_grits',
+ 'spaghetti_bolognese',
+ 'spaghetti_carbonara',
+ 'spring_rolls',
+ 'steak',
+ 'strawberry_shortcake',
+ 'sushi',
+ 'tacos',
+ 'takoyaki',
+ 'tiramisu',
+ 'tuna_tartare',
+ 'waffles']
+[ ]
+#we need to make change to our confusion matrix to ensure the x-labels print vertically
+import itertools
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+def make_confusion_matrix(y_true, y_pred, classes=None, figsize=(10, 10), text_size=15, norm=False, savefig=False): 
+  """Makes a labelled confusion matrix comparing predictions and ground truth labels.
+
+  If classes is passed, confusion matrix will be labelled, if not, integer class values
+  will be used.
+
+  Args:
+    y_true: Array of truth labels (must be same shape as y_pred).
+    y_pred: Array of predicted labels (must be same shape as y_true).
+    classes: Array of class labels (e.g. string form). If `None`, integer labels are used.
+    figsize: Size of output figure (default=(10, 10)).
+    text_size: Size of output figure text (default=15).
+    norm: normalize values or not (default=False).
+    savefig: save confusion matrix to file (default=False).
+  
+  Returns:
+    A labelled confusion matrix plot comparing y_true and y_pred.
+
+  Example usage:
+    make_confusion_matrix(y_true=test_labels, # ground truth test labels
+                          y_pred=y_preds, # predicted labels
+                          classes=class_names, # array of class label names
+                          figsize=(15, 15),
+                          text_size=10)
+  """  
+  # Create the confustion matrix
+  cm = confusion_matrix(y_true, y_pred)
+  cm_norm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis] # normalize it
+  n_classes = cm.shape[0] # find the number of classes we're dealing with
+
+  # Plot the figure and make it pretty
+  fig, ax = plt.subplots(figsize=figsize)
+  cax = ax.matshow(cm, cmap=plt.cm.Blues) # colors will represent how 'correct' a class is, darker == better
+  fig.colorbar(cax)
+
+  # Are there a list of classes?
+  if classes:
+    labels = classes
+  else:
+    labels = np.arange(cm.shape[0])
+  
+  # Label the axes
+  ax.set(title="Confusion Matrix",
+         xlabel="Predicted label",
+         ylabel="True label",
+         xticks=np.arange(n_classes), # create enough axis slots for each class
+         yticks=np.arange(n_classes), 
+         xticklabels=labels, # axes will labeled with class names (if they exist) or ints
+         yticklabels=labels)
+  
+  # Make x-axis labels appear on bottom
+  ax.xaxis.set_label_position("bottom")
+  ax.xaxis.tick_bottom()
+
+  #changed(plot x-labels vertically)
+  plt.xticks(rotation=70,fontsize=text_size)
+  plt.yticks(fontsize=text_size)
+  
+  # Set the threshold for different colors
+  threshold = (cm.max() + cm.min()) / 2.
+
+  # Plot the text on each cell
+  for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    if norm:
+      plt.text(j, i, f"{cm[i, j]} ({cm_norm[i, j]*100:.1f}%)",
+              horizontalalignment="center",
+              color="white" if cm[i, j] > threshold else "black",
+              size=text_size)
+    else:
+      plt.text(j, i, f"{cm[i, j]}",
+              horizontalalignment="center",
+              color="white" if cm[i, j] > threshold else "black",
+              size=text_size)
+
+  # Save the figure to the current working directory
+  if savefig:
+    fig.savefig("confusion_matrix.png")
+  
+[ ]
+make_confusion_matrix(y_true=y_labels,
+                      y_pred=pred_classes,
+                      classes=class_name,
+                      figsize=(100,100),
+                      text_size=20,
+                      savefig=True)
+
+Let's us keep the evaluation train going , time for a classification report
+sckit-learn has many different helper function for acquiring many different classification metrics per class (e.g:- precision recall and F1) called classification_report,let's try it out
+
+[ ]
+from sklearn.metrics import classification_report
+print(classification_report(y_labels,pred_classes))
+              precision    recall  f1-score   support
+
+           0       0.29      0.20      0.24       250
+           1       0.51      0.69      0.59       250
+           2       0.56      0.65      0.60       250
+           3       0.74      0.53      0.62       250
+           4       0.73      0.43      0.54       250
+           5       0.34      0.54      0.42       250
+           6       0.67      0.79      0.72       250
+           7       0.82      0.76      0.79       250
+           8       0.40      0.37      0.39       250
+           9       0.62      0.44      0.51       250
+          10       0.62      0.42      0.50       250
+          11       0.84      0.49      0.62       250
+          12       0.52      0.74      0.61       250
+          13       0.56      0.60      0.58       250
+          14       0.56      0.59      0.57       250
+          15       0.44      0.32      0.37       250
+          16       0.45      0.75      0.57       250
+          17       0.37      0.51      0.43       250
+          18       0.43      0.60      0.50       250
+          19       0.68      0.60      0.64       250
+          20       0.68      0.75      0.71       250
+          21       0.35      0.64      0.45       250
+          22       0.30      0.37      0.33       250
+          23       0.66      0.77      0.71       250
+          24       0.83      0.72      0.77       250
+          25       0.76      0.71      0.73       250
+          26       0.51      0.42      0.46       250
+          27       0.78      0.72      0.75       250
+          28       0.70      0.69      0.69       250
+          29       0.70      0.68      0.69       250
+          30       0.92      0.63      0.75       250
+          31       0.78      0.70      0.74       250
+          32       0.75      0.83      0.79       250
+          33       0.89      0.98      0.94       250
+          34       0.68      0.78      0.72       250
+          35       0.78      0.66      0.72       250
+          36       0.53      0.56      0.55       250
+          37       0.30      0.55      0.39       250
+          38       0.78      0.63      0.69       250
+          39       0.27      0.33      0.30       250
+          40       0.72      0.81      0.76       250
+          41       0.81      0.62      0.70       250
+          42       0.50      0.58      0.54       250
+          43       0.75      0.60      0.67       250
+          44       0.74      0.45      0.56       250
+          45       0.77      0.85      0.81       250
+          46       0.81      0.46      0.58       250
+          47       0.44      0.49      0.46       250
+          48       0.45      0.81      0.58       250
+          49       0.50      0.44      0.47       250
+          50       0.54      0.39      0.46       250
+          51       0.71      0.86      0.78       250
+          52       0.51      0.77      0.61       250
+          53       0.67      0.68      0.68       250
+          54       0.88      0.75      0.81       250
+          55       0.86      0.69      0.76       250
+          56       0.56      0.24      0.34       250
+          57       0.62      0.45      0.52       250
+          58       0.68      0.58      0.62       250
+          59       0.70      0.37      0.49       250
+          60       0.83      0.59      0.69       250
+          61       0.54      0.81      0.65       250
+          62       0.72      0.49      0.58       250
+          63       0.94      0.86      0.90       250
+          64       0.78      0.85      0.81       250
+          65       0.82      0.82      0.82       250
+          66       0.69      0.32      0.44       250
+          67       0.41      0.58      0.48       250
+          68       0.90      0.78      0.83       250
+          69       0.84      0.82      0.83       250
+          70       0.62      0.83      0.71       250
+          71       0.81      0.46      0.59       250
+          72       0.64      0.65      0.65       250
+          73       0.51      0.44      0.47       250
+          74       0.72      0.61      0.66       250
+          75       0.84      0.90      0.87       250
+          76       0.78      0.78      0.78       250
+          77       0.36      0.27      0.31       250
+          78       0.79      0.74      0.76       250
+          79       0.44      0.81      0.57       250
+          80       0.57      0.60      0.59       250
+          81       0.65      0.70      0.68       250
+          82       0.38      0.31      0.34       250
+          83       0.58      0.80      0.67       250
+          84       0.61      0.38      0.47       250
+          85       0.44      0.74      0.55       250
+          86       0.71      0.86      0.78       250
+          87       0.41      0.39      0.40       250
+          88       0.83      0.80      0.81       250
+          89       0.71      0.31      0.43       250
+          90       0.92      0.69      0.79       250
+          91       0.83      0.87      0.85       250
+          92       0.68      0.65      0.67       250
+          93       0.31      0.38      0.34       250
+          94       0.61      0.54      0.57       250
+          95       0.74      0.61      0.67       250
+          96       0.56      0.29      0.38       250
+          97       0.45      0.74      0.56       250
+          98       0.47      0.33      0.39       250
+          99       0.52      0.27      0.35       250
+         100       0.59      0.70      0.64       250
+
+    accuracy                           0.61     25250
+   macro avg       0.63      0.61      0.61     25250
+weighted avg       0.63      0.61      0.61     25250
+
+The number above give us the class by class classification evalutaion of our model's prediction but with so many classes,they are quite hard to undertanding?.
+
+[ ]
+#get the dictonary of the classification report
+classification_report_dict=classification_report(y_labels,pred_classes,output_dict=True)
+classification_report_dict
+{'0': {'precision': 0.29310344827586204,
+  'recall': 0.204,
+  'f1-score': 0.24056603773584903,
+  'support': 250},
+ '1': {'precision': 0.5088235294117647,
+  'recall': 0.692,
+  'f1-score': 0.5864406779661017,
+  'support': 250},
+ '2': {'precision': 0.5625,
+  'recall': 0.648,
+  'f1-score': 0.6022304832713754,
+  'support': 250},
+ '3': {'precision': 0.7415730337078652,
+  'recall': 0.528,
+  'f1-score': 0.616822429906542,
+  'support': 250},
+ '4': {'precision': 0.7346938775510204,
+  'recall': 0.432,
+  'f1-score': 0.544080604534005,
+  'support': 250},
+ '5': {'precision': 0.34177215189873417,
+  'recall': 0.54,
+  'f1-score': 0.41860465116279066,
+  'support': 250},
+ '6': {'precision': 0.6677966101694915,
+  'recall': 0.788,
+  'f1-score': 0.7229357798165138,
+  'support': 250},
+ '7': {'precision': 0.8197424892703863,
+  'recall': 0.764,
+  'f1-score': 0.7908902691511386,
+  'support': 250},
+ '8': {'precision': 0.4025974025974026,
+  'recall': 0.372,
+  'f1-score': 0.3866943866943867,
+  'support': 250},
+ '9': {'precision': 0.6193181818181818,
+  'recall': 0.436,
+  'f1-score': 0.5117370892018779,
+  'support': 250},
+ '10': {'precision': 0.6235294117647059,
+  'recall': 0.424,
+  'f1-score': 0.5047619047619047,
+  'support': 250},
+ '11': {'precision': 0.8356164383561644,
+  'recall': 0.488,
+  'f1-score': 0.6161616161616161,
+  'support': 250},
+ '12': {'precision': 0.5196629213483146,
+  'recall': 0.74,
+  'f1-score': 0.6105610561056106,
+  'support': 250},
+ '13': {'precision': 0.5601503759398496,
+  'recall': 0.596,
+  'f1-score': 0.5775193798449612,
+  'support': 250},
+ '14': {'precision': 0.5584905660377358,
+  'recall': 0.592,
+  'f1-score': 0.574757281553398,
+  'support': 250},
+ '15': {'precision': 0.4388888888888889,
+  'recall': 0.316,
+  'f1-score': 0.36744186046511623,
+  'support': 250},
+ '16': {'precision': 0.4530120481927711,
+  'recall': 0.752,
+  'f1-score': 0.5654135338345864,
+  'support': 250},
+ '17': {'precision': 0.3659942363112392,
+  'recall': 0.508,
+  'f1-score': 0.42546063651591287,
+  'support': 250},
+ '18': {'precision': 0.4318840579710145,
+  'recall': 0.596,
+  'f1-score': 0.5008403361344538,
+  'support': 250},
+ '19': {'precision': 0.6832579185520362,
+  'recall': 0.604,
+  'f1-score': 0.6411889596602972,
+  'support': 250},
+ '20': {'precision': 0.68,
+  'recall': 0.748,
+  'f1-score': 0.7123809523809523,
+  'support': 250},
+ '21': {'precision': 0.350109409190372,
+  'recall': 0.64,
+  'f1-score': 0.45261669024045265,
+  'support': 250},
+ '22': {'precision': 0.2977346278317152,
+  'recall': 0.368,
+  'f1-score': 0.3291592128801431,
+  'support': 250},
+ '23': {'precision': 0.6632302405498282,
+  'recall': 0.772,
+  'f1-score': 0.7134935304990757,
+  'support': 250},
+ '24': {'precision': 0.8294930875576036,
+  'recall': 0.72,
+  'f1-score': 0.7708779443254817,
+  'support': 250},
+ '25': {'precision': 0.7574468085106383,
+  'recall': 0.712,
+  'f1-score': 0.734020618556701,
+  'support': 250},
+ '26': {'precision': 0.5147058823529411,
+  'recall': 0.42,
+  'f1-score': 0.4625550660792952,
+  'support': 250},
+ '27': {'precision': 0.776824034334764,
+  'recall': 0.724,
+  'f1-score': 0.7494824016563146,
+  'support': 250},
+ '28': {'precision': 0.6991869918699187,
+  'recall': 0.688,
+  'f1-score': 0.6935483870967742,
+  'support': 250},
+ '29': {'precision': 0.7024793388429752,
+  'recall': 0.68,
+  'f1-score': 0.6910569105691057,
+  'support': 250},
+ '30': {'precision': 0.9235294117647059,
+  'recall': 0.628,
+  'f1-score': 0.7476190476190476,
+  'support': 250},
+ '31': {'precision': 0.7802690582959642,
+  'recall': 0.696,
+  'f1-score': 0.7357293868921776,
+  'support': 250},
+ '32': {'precision': 0.7472924187725631,
+  'recall': 0.828,
+  'f1-score': 0.7855787476280836,
+  'support': 250},
+ '33': {'precision': 0.8945454545454545,
+  'recall': 0.984,
+  'f1-score': 0.9371428571428572,
+  'support': 250},
+ '34': {'precision': 0.6783216783216783,
+  'recall': 0.776,
+  'f1-score': 0.7238805970149255,
+  'support': 250},
+ '35': {'precision': 0.7819905213270142,
+  'recall': 0.66,
+  'f1-score': 0.715835140997831,
+  'support': 250},
+ '36': {'precision': 0.5320754716981132,
+  'recall': 0.564,
+  'f1-score': 0.5475728155339805,
+  'support': 250},
+ '37': {'precision': 0.29912663755458513,
+  'recall': 0.548,
+  'f1-score': 0.3870056497175141,
+  'support': 250},
+ '38': {'precision': 0.7772277227722773,
+  'recall': 0.628,
+  'f1-score': 0.6946902654867257,
+  'support': 250},
+ '39': {'precision': 0.2694805194805195,
+  'recall': 0.332,
+  'f1-score': 0.29749103942652333,
+  'support': 250},
+ '40': {'precision': 0.7214285714285714,
+  'recall': 0.808,
+  'f1-score': 0.7622641509433963,
+  'support': 250},
+ '41': {'precision': 0.8115183246073299,
+  'recall': 0.62,
+  'f1-score': 0.7029478458049886,
+  'support': 250},
+ '42': {'precision': 0.5,
+  'recall': 0.58,
+  'f1-score': 0.537037037037037,
+  'support': 250},
+ '43': {'precision': 0.746268656716418,
+  'recall': 0.6,
+  'f1-score': 0.6651884700665188,
+  'support': 250},
+ '44': {'precision': 0.7417218543046358,
+  'recall': 0.448,
+  'f1-score': 0.5586034912718205,
+  'support': 250},
+ '45': {'precision': 0.7745454545454545,
+  'recall': 0.852,
+  'f1-score': 0.8114285714285714,
+  'support': 250},
+ '46': {'precision': 0.8085106382978723,
+  'recall': 0.456,
+  'f1-score': 0.5831202046035805,
+  'support': 250},
+ '47': {'precision': 0.4392857142857143,
+  'recall': 0.492,
+  'f1-score': 0.4641509433962264,
+  'support': 250},
+ '48': {'precision': 0.4481236203090508,
+  'recall': 0.812,
+  'f1-score': 0.577524893314367,
+  'support': 250},
+ '49': {'precision': 0.5045454545454545,
+  'recall': 0.444,
+  'f1-score': 0.47234042553191485,
+  'support': 250},
+ '50': {'precision': 0.5444444444444444,
+  'recall': 0.392,
+  'f1-score': 0.45581395348837206,
+  'support': 250},
+ '51': {'precision': 0.7081967213114754,
+  'recall': 0.864,
+  'f1-score': 0.7783783783783783,
+  'support': 250},
+ '52': {'precision': 0.5092838196286472,
+  'recall': 0.768,
+  'f1-score': 0.6124401913875598,
+  'support': 250},
+ '53': {'precision': 0.6719367588932806,
+  'recall': 0.68,
+  'f1-score': 0.6759443339960238,
+  'support': 250},
+ '54': {'precision': 0.8785046728971962,
+  'recall': 0.752,
+  'f1-score': 0.8103448275862069,
+  'support': 250},
+ '55': {'precision': 0.86,
+  'recall': 0.688,
+  'f1-score': 0.7644444444444444,
+  'support': 250},
+ '56': {'precision': 0.5596330275229358,
+  'recall': 0.244,
+  'f1-score': 0.3398328690807799,
+  'support': 250},
+ '57': {'precision': 0.6222222222222222,
+  'recall': 0.448,
+  'f1-score': 0.5209302325581396,
+  'support': 250},
+ '58': {'precision': 0.6792452830188679,
+  'recall': 0.576,
+  'f1-score': 0.6233766233766233,
+  'support': 250},
+ '59': {'precision': 0.7045454545454546,
+  'recall': 0.372,
+  'f1-score': 0.486910994764398,
+  'support': 250},
+ '60': {'precision': 0.8305084745762712,
+  'recall': 0.588,
+  'f1-score': 0.6885245901639344,
+  'support': 250},
+ '61': {'precision': 0.543010752688172,
+  'recall': 0.808,
+  'f1-score': 0.6495176848874598,
+  'support': 250},
+ '62': {'precision': 0.7218934911242604,
+  'recall': 0.488,
+  'f1-score': 0.5823389021479712,
+  'support': 250},
+ '63': {'precision': 0.9385964912280702,
+  'recall': 0.856,
+  'f1-score': 0.895397489539749,
+  'support': 250},
+ '64': {'precision': 0.7773722627737226,
+  'recall': 0.852,
+  'f1-score': 0.8129770992366412,
+  'support': 250},
+ '65': {'precision': 0.82, 'recall': 0.82, 'f1-score': 0.82, 'support': 250},
+ '66': {'precision': 0.6923076923076923,
+  'recall': 0.324,
+  'f1-score': 0.44141689373297005,
+  'support': 250},
+ '67': {'precision': 0.4090909090909091,
+  'recall': 0.576,
+  'f1-score': 0.47840531561461797,
+  'support': 250},
+ '68': {'precision': 0.8981481481481481,
+  'recall': 0.776,
+  'f1-score': 0.832618025751073,
+  'support': 250},
+ '69': {'precision': 0.8442622950819673,
+  'recall': 0.824,
+  'f1-score': 0.8340080971659919,
+  'support': 250},
+ '70': {'precision': 0.6216216216216216,
+  'recall': 0.828,
+  'f1-score': 0.7101200686106347,
+  'support': 250},
+ '71': {'precision': 0.8111888111888111,
+  'recall': 0.464,
+  'f1-score': 0.5903307888040712,
+  'support': 250},
+ '72': {'precision': 0.6417322834645669,
+  'recall': 0.652,
+  'f1-score': 0.6468253968253969,
+  'support': 250},
+ '73': {'precision': 0.5091743119266054,
+  'recall': 0.444,
+  'f1-score': 0.4743589743589744,
+  'support': 250},
+ '74': {'precision': 0.7169811320754716,
+  'recall': 0.608,
+  'f1-score': 0.658008658008658,
+  'support': 250},
+ '75': {'precision': 0.8389513108614233,
+  'recall': 0.896,
+  'f1-score': 0.8665377176015473,
+  'support': 250},
+ '76': {'precision': 0.7777777777777778,
+  'recall': 0.784,
+  'f1-score': 0.7808764940239045,
+  'support': 250},
+ '77': {'precision': 0.3641304347826087,
+  'recall': 0.268,
+  'f1-score': 0.30875576036866365,
+  'support': 250},
+ '78': {'precision': 0.7863247863247863,
+  'recall': 0.736,
+  'f1-score': 0.7603305785123966,
+  'support': 250},
+ '79': {'precision': 0.44130434782608696,
+  'recall': 0.812,
+  'f1-score': 0.571830985915493,
+  'support': 250},
+ '80': {'precision': 0.5747126436781609,
+  'recall': 0.6,
+  'f1-score': 0.5870841487279843,
+  'support': 250},
+ '81': {'precision': 0.6529850746268657,
+  'recall': 0.7,
+  'f1-score': 0.6756756756756757,
+  'support': 250},
+ '82': {'precision': 0.3804878048780488,
+  'recall': 0.312,
+  'f1-score': 0.34285714285714286,
+  'support': 250},
+ '83': {'precision': 0.5780346820809249,
+  'recall': 0.8,
+  'f1-score': 0.6711409395973154,
+  'support': 250},
+ '84': {'precision': 0.6103896103896104,
+  'recall': 0.376,
+  'f1-score': 0.4653465346534653,
+  'support': 250},
+ '85': {'precision': 0.4423076923076923,
+  'recall': 0.736,
+  'f1-score': 0.5525525525525525,
+  'support': 250},
+ '86': {'precision': 0.7081967213114754,
+  'recall': 0.864,
+  'f1-score': 0.7783783783783783,
+  'support': 250},
+ '87': {'precision': 0.40756302521008403,
+  'recall': 0.388,
+  'f1-score': 0.3975409836065574,
+  'support': 250},
+ '88': {'precision': 0.8264462809917356,
+  'recall': 0.8,
+  'f1-score': 0.8130081300813008,
+  'support': 250},
+ '89': {'precision': 0.7129629629629629,
+  'recall': 0.308,
+  'f1-score': 0.4301675977653631,
+  'support': 250},
+ '90': {'precision': 0.9153439153439153,
+  'recall': 0.692,
+  'f1-score': 0.7881548974943051,
+  'support': 250},
+ '91': {'precision': 0.8282442748091603,
+  'recall': 0.868,
+  'f1-score': 0.84765625,
+  'support': 250},
+ '92': {'precision': 0.6835443037974683,
+  'recall': 0.648,
+  'f1-score': 0.6652977412731006,
+  'support': 250},
+ '93': {'precision': 0.3114754098360656,
+  'recall': 0.38,
+  'f1-score': 0.34234234234234234,
+  'support': 250},
+ '94': {'precision': 0.6118721461187214,
+  'recall': 0.536,
+  'f1-score': 0.5714285714285714,
+  'support': 250},
+ '95': {'precision': 0.7427184466019418,
+  'recall': 0.612,
+  'f1-score': 0.6710526315789473,
+  'support': 250},
+ '96': {'precision': 0.5625,
+  'recall': 0.288,
+  'f1-score': 0.3809523809523809,
+  'support': 250},
+ '97': {'precision': 0.4547677261613692,
+  'recall': 0.744,
+  'f1-score': 0.5644916540212443,
+  'support': 250},
+ '98': {'precision': 0.4685714285714286,
+  'recall': 0.328,
+  'f1-score': 0.3858823529411765,
+  'support': 250},
+ '99': {'precision': 0.5193798449612403,
+  'recall': 0.268,
+  'f1-score': 0.35356200527704484,
+  'support': 250},
+ '100': {'precision': 0.5912162162162162,
+  'recall': 0.7,
+  'f1-score': 0.641025641025641,
+  'support': 250},
+ 'accuracy': 0.6077623762376237,
+ 'macro avg': {'precision': 0.6328666845830312,
+  'recall': 0.6077623762376237,
+  'f1-score': 0.6061252197245781,
+  'support': 25250},
+ 'weighted avg': {'precision': 0.6328666845830311,
+  'recall': 0.6077623762376237,
+  'f1-score': 0.606125219724578,
+  'support': 25250}}
+plot all our classes F1-scores
+[ ]
+#create empty dictionary
+class_f1_scores= {}
+#loop through classification report items
+for k,v in classification_report_dict.items():
+  if k == "accuracy":
+    break
+  else:
+    # Add class names and f1-scores name to our new-dictionary
+     class_f1_scores[class_name[int(k)]] = v["f1-score"]
+class_f1_scores
+{'apple_pie': 0.24056603773584903,
+ 'baby_back_ribs': 0.5864406779661017,
+ 'baklava': 0.6022304832713754,
+ 'beef_carpaccio': 0.616822429906542,
+ 'beef_tartare': 0.544080604534005,
+ 'beet_salad': 0.41860465116279066,
+ 'beignets': 0.7229357798165138,
+ 'bibimbap': 0.7908902691511386,
+ 'bread_pudding': 0.3866943866943867,
+ 'breakfast_burrito': 0.5117370892018779,
+ 'bruschetta': 0.5047619047619047,
+ 'caesar_salad': 0.6161616161616161,
+ 'cannoli': 0.6105610561056106,
+ 'caprese_salad': 0.5775193798449612,
+ 'carrot_cake': 0.574757281553398,
+ 'ceviche': 0.36744186046511623,
+ 'cheese_plate': 0.5654135338345864,
+ 'cheesecake': 0.42546063651591287,
+ 'chicken_curry': 0.5008403361344538,
+ 'chicken_quesadilla': 0.6411889596602972,
+ 'chicken_wings': 0.7123809523809523,
+ 'chocolate_cake': 0.45261669024045265,
+ 'chocolate_mousse': 0.3291592128801431,
+ 'churros': 0.7134935304990757,
+ 'clam_chowder': 0.7708779443254817,
+ 'club_sandwich': 0.734020618556701,
+ 'crab_cakes': 0.4625550660792952,
+ 'creme_brulee': 0.7494824016563146,
+ 'croque_madame': 0.6935483870967742,
+ 'cup_cakes': 0.6910569105691057,
+ 'deviled_eggs': 0.7476190476190476,
+ 'donuts': 0.7357293868921776,
+ 'dumplings': 0.7855787476280836,
+ 'edamame': 0.9371428571428572,
+ 'eggs_benedict': 0.7238805970149255,
+ 'escargots': 0.715835140997831,
+ 'falafel': 0.5475728155339805,
+ 'filet_mignon': 0.3870056497175141,
+ 'fish_and_chips': 0.6946902654867257,
+ 'foie_gras': 0.29749103942652333,
+ 'french_fries': 0.7622641509433963,
+ 'french_onion_soup': 0.7029478458049886,
+ 'french_toast': 0.537037037037037,
+ 'fried_calamari': 0.6651884700665188,
+ 'fried_rice': 0.5586034912718205,
+ 'frozen_yogurt': 0.8114285714285714,
+ 'garlic_bread': 0.5831202046035805,
+ 'gnocchi': 0.4641509433962264,
+ 'greek_salad': 0.577524893314367,
+ 'grilled_cheese_sandwich': 0.47234042553191485,
+ 'grilled_salmon': 0.45581395348837206,
+ 'guacamole': 0.7783783783783783,
+ 'gyoza': 0.6124401913875598,
+ 'hamburger': 0.6759443339960238,
+ 'hot_and_sour_soup': 0.8103448275862069,
+ 'hot_dog': 0.7644444444444444,
+ 'huevos_rancheros': 0.3398328690807799,
+ 'hummus': 0.5209302325581396,
+ 'ice_cream': 0.6233766233766233,
+ 'lasagna': 0.486910994764398,
+ 'lobster_bisque': 0.6885245901639344,
+ 'lobster_roll_sandwich': 0.6495176848874598,
+ 'macaroni_and_cheese': 0.5823389021479712,
+ 'macarons': 0.895397489539749,
+ 'miso_soup': 0.8129770992366412,
+ 'mussels': 0.82,
+ 'nachos': 0.44141689373297005,
+ 'omelette': 0.47840531561461797,
+ 'onion_rings': 0.832618025751073,
+ 'oysters': 0.8340080971659919,
+ 'pad_thai': 0.7101200686106347,
+ 'paella': 0.5903307888040712,
+ 'pancakes': 0.6468253968253969,
+ 'panna_cotta': 0.4743589743589744,
+ 'peking_duck': 0.658008658008658,
+ 'pho': 0.8665377176015473,
+ 'pizza': 0.7808764940239045,
+ 'pork_chop': 0.30875576036866365,
+ 'poutine': 0.7603305785123966,
+ 'prime_rib': 0.571830985915493,
+ 'pulled_pork_sandwich': 0.5870841487279843,
+ 'ramen': 0.6756756756756757,
+ 'ravioli': 0.34285714285714286,
+ 'red_velvet_cake': 0.6711409395973154,
+ 'risotto': 0.4653465346534653,
+ 'samosa': 0.5525525525525525,
+ 'sashimi': 0.7783783783783783,
+ 'scallops': 0.3975409836065574,
+ 'seaweed_salad': 0.8130081300813008,
+ 'shrimp_and_grits': 0.4301675977653631,
+ 'spaghetti_bolognese': 0.7881548974943051,
+ 'spaghetti_carbonara': 0.84765625,
+ 'spring_rolls': 0.6652977412731006,
+ 'steak': 0.34234234234234234,
+ 'strawberry_shortcake': 0.5714285714285714,
+ 'sushi': 0.6710526315789473,
+ 'tacos': 0.3809523809523809,
+ 'takoyaki': 0.5644916540212443,
+ 'tiramisu': 0.3858823529411765,
+ 'tuna_tartare': 0.35356200527704484,
+ 'waffles': 0.641025641025641}
+[ ]
+#turn the f1 score into dataframes for vizualisation
+import pandas as pd
+f1_scores=pd.DataFrame({"class_names": list(class_f1_scores.keys()),
+                         "f1_score": list(class_f1_scores.values())}).sort_values("f1_score",ascending=False)
+f1_scores
+
+[ ]
+import matplotlib.pyplot as plt
+
+fig, ax =plt.subplots(figsize=(12,25))
+scores= ax.barh(range(len(f1_scores)),f1_scores["f1_score"].values) #f1-score values
+ax.set_yticks(range(len(f1_scores)))
+ax.set_yticklabels(f1_scores["class_names"])
+ax.set_title("f1-scores for 101-classes")
+ax.invert_yaxis(); #reverse order of our plot
+
+now we got a function prepare and load our target images,let's now write some code to visualize,visualize,visulize images, their target labels and our model's prediction
+
+write some code to
+
+load a few images from the test dataset
+make some prediction on the loaded images
+plot the original images(s) with model prediction,prediction probaibility and truth label
+[ ]
+import random
+class_names=test_data.class_names
+class_name=random.choice(class_names)
+class_name
+
+
+[ ]
+#make prediction on random images
+import os
+import random
+from helper_functions import load_and_prep_image
+plt.figure(figsize=(17,10))
+for i in range(3):
+  #chose random images from a random classes
+  class_name=random.choice(class_names)
+  filename=random.choice(os.listdir(test_dir + "/"+class_name))
+  filepath= test_dir + class_name + "/" + filename
+
+  #load the images and make preditions
+  img=load_and_prep_image(filepath,scale=False)
+  img_expanded=tf.expand_dims(img,axis=0)
+  pred_prob=model.predict(img_expanded) #get the prediction probability array
+  pred_class= class_names[pred_prob.argmax()] #get the higest probability index and match it class_name preds
+
+  #plot the images
+  plt.subplot(1,3,i+1)
+  plt.imshow(img/255.)
+  print(class_name==pred_class)
+  if class_names == pred_class: #if the predicted class matches truth class make text green
+    title_color='g'
+  else:
+    title_color='r'
+  plt.title(f"actual : {class_name},prob: {pred_prob.max():.2f},preb: {pred_class}",c=title_color)
+  plt.axis(False)
+  #for right prediction color does not change to green and stays red. That doesn't mean the prediction are always wrong
+
+Finding the most wrong prediction
+To find out where our model is most wrongs let's right some code to find out the following
+
+get all the image file paths in the test datasets using the list file methods
+create a pandas a dataframe of the image filepaths, grounds, truth labels, predicted class(from our model), max prediction probaibilities
+use our DataFrames ro find all the wrong prediction. (where the ground truth label find does not match our prediction)
+sort the dataframes on the wrong predictions (have the highest prediction probanbility at the top)
+visualize the images with highest prediction probability but have the wrong prediction
+[ ]
+#1. get all the image file paths in the test datasets
+filepaths=[]
+for filepath in test_data.list_files("/content/101_food_classes_10_percent/test/*/*.jpg",
+                                     shuffle=False):
+  filepaths.append(filepath.numpy())
+filepaths  
+[b'/content/101_food_classes_10_percent/test/apple_pie/1011328.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/101251.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1034399.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/103801.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1038694.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1047447.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1068632.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/110043.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1106961.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1113017.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/116705.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1167170.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1174330.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1180600.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1235282.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1269202.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1272958.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1284428.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1295996.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/129668.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1321400.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1327259.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1332030.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1364847.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1375404.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1398774.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1420999.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1429866.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1444702.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1461580.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1469191.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1472631.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1510125.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1510930.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1514110.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1526484.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1578710.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1579622.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1579774.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1617515.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1617793.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1626685.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1629072.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1657587.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1674492.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/168971.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/175848.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1771374.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1773419.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1774036.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1815947.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1847621.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1854241.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1878082.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1889575.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1893663.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1899005.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1906009.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/1919827.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2034818.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2038171.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2040919.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2074694.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2084963.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2097980.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2109273.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2110985.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2113478.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2114765.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2130269.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2175701.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2189388.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2200733.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2206034.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2206649.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2214366.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2218771.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/224383.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/224785.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2254489.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2271474.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/229142.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2298195.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2304784.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2334907.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2338398.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2368252.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2373323.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2374771.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2380340.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2395631.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2402925.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2407532.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2437888.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2440054.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2445712.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2446133.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2446500.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/246113.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2477191.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2496124.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/250066.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2511157.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2517059.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2523219.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2523928.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2553659.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2559009.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2566460.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/257377.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2576737.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2586042.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2596943.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2601847.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2610524.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/262170.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2629959.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2637058.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2663191.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2669146.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2673907.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2680614.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2698889.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2737512.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2754101.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2766011.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2766017.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2791334.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/280007.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/283209.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2848506.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2878249.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2881877.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2909139.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2911777.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2923139.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2945592.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2948680.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/296614.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2968812.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/2983047.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/300660.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3027601.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3037459.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/305590.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3068872.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3108987.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3160240.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/317970.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3214268.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3217751.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3240840.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3242509.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3243441.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3253793.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3257241.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3267436.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3269273.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3270291.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3275788.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3276340.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3280206.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3299260.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3314985.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3327221.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3330808.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3365558.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3385074.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/343461.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3440507.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3463862.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3464305.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3466310.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3471337.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3485833.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3497884.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3505644.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3517723.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3521500.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3547012.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3553736.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3555118.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3590485.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3594610.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3603821.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/362792.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3633369.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3635782.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3639398.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3647026.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3676725.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3676950.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3691035.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3708762.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3720779.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3727785.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3746599.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3779150.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3800561.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3809728.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3825794.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3829004.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3860485.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/38795.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/3915901.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/403084.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/406682.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/407267.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/416233.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/418685.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/438094.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/440497.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/451719.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/455977.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/466304.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/484947.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/486170.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/495046.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/507349.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/532019.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/532974.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/590327.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/646264.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/661475.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/668694.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/688983.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/693210.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/727825.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/801869.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/807000.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/812047.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/827575.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/829175.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/829830.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/829949.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/83981.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/861244.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/867502.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/879842.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/884504.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/885848.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/886793.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/904832.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/908367.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/963140.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/981895.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/984571.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/986844.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/99556.jpg',
+ b'/content/101_food_classes_10_percent/test/apple_pie/997950.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1005066.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1022479.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1058654.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1074480.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1086617.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1098606.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/112142.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1138370.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1145041.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1150028.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1150070.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1183551.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1185016.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/120576.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1211064.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1221409.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1228072.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1262675.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1285825.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1329841.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1330649.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1339637.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1341719.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1347489.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1352978.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1381124.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/139044.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1394367.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1395662.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1421097.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1427390.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/143583.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1451628.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1495381.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1506362.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1512537.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1521817.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1556943.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1573043.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1584068.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1593880.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/160194.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1622817.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1623333.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1631249.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/163622.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1636617.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1641429.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1667679.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1678943.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1682911.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1698180.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1732271.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1735046.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1763693.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1765250.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1793347.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1811267.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1833421.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1851892.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1856264.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/18596.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1873449.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1907138.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/19325.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1942524.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1943655.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1964783.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1967177.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/1995647.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2006268.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2023403.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2025526.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2032061.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2042437.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2053235.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2066688.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2066952.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2079486.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2079924.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2103750.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/211120.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2129884.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2130114.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2132277.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2134746.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2141995.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2145496.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2185492.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2189077.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2203767.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2213109.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2232942.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2245405.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2252638.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2261491.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2272205.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2275499.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2306008.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2309590.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2314472.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2320542.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2326074.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2331746.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2345176.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2348457.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2349904.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2352033.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2370716.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2407847.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2432.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2437890.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2454123.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2464308.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2490676.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2502288.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2517831.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2535607.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2576256.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2587414.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2587676.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2591611.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2602664.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2604946.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/261900.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2619132.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2624343.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2633796.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2640078.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/26834.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2687000.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/269885.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2702542.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2709715.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2710948.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2733895.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2740626.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2764727.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2780701.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2816200.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2823429.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2828232.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2846282.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2854197.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/286189.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2874924.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2886780.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2897079.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2901249.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2952510.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2954986.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2977633.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2989382.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/2992299.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3052734.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3057918.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3069665.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3085976.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/312370.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3142180.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/314812.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3222671.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3228576.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3244661.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3256657.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3325494.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3348957.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3367846.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3380363.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3400201.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3412219.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3439326.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3440392.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3446846.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3489481.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3516733.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/353489.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3575404.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3581600.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/360664.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3608011.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3619041.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3621492.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3660437.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3664510.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3678273.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3679934.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3680520.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3700896.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3737603.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3748156.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3780980.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/381199.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3824491.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3828218.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/384960.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3863637.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3873682.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3887363.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/3890499.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/408666.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/426980.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/464659.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/470646.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/501334.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/519489.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/54203.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/543585.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/546242.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/563715.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/575222.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/586642.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/593493.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/611849.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/620997.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/626550.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/649840.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/652170.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/664114.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/668551.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/669669.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/677088.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/689859.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/707137.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/716804.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/736982.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/748033.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/759979.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/760126.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/776819.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/777636.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/787250.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/824318.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/82439.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/833244.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/836913.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/87031.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/898761.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/910021.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/915852.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/917430.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/919073.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/924529.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/934716.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/941128.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/941715.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/968229.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/974195.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/976284.jpg',
+ b'/content/101_food_classes_10_percent/test/baby_back_ribs/994232.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1028777.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1029051.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/104446.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1062541.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1067270.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1075871.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/107830.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1110172.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1118803.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1138123.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1150170.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1196728.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/120691.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1208747.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1241477.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/125912.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1264253.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1266641.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1281439.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1284897.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1292647.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/129478.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1297412.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/130220.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1310031.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1317164.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1326926.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1336971.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1351482.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1363613.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1389963.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1390709.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1391742.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1392219.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1417138.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/143372.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1448425.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1488283.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1502186.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1503293.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1513651.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1520628.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1540948.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1547455.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1547472.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1550074.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/155221.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/158510.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1600317.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1601530.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1648719.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1687299.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1705577.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1709269.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1717840.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1720866.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1739946.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1746317.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1758057.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1762550.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1772994.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1795930.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1823708.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1834720.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1846365.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1849718.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1881388.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1885421.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1896759.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1915978.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1946286.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/1988719.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2021629.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2028827.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2041299.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2068554.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/206902.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2073284.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/209463.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2102830.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2106469.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2117032.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2148215.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2156244.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2162852.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2171197.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2186251.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2278334.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2284086.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2284673.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2309578.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2313082.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2321560.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2322552.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2348370.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2373207.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2374859.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2379083.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2412675.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2433084.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2444054.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2446068.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2447796.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2465433.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2481609.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2487865.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2511087.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2532310.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2539615.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2542430.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2546811.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2553456.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2555804.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2556193.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2566349.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2569979.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2573536.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2582738.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2593821.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2644083.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2649603.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2662831.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2683612.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2692458.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2694279.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2708501.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2718099.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2751965.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2768985.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2828700.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2841494.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/285000.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2860627.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/28613.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2924742.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2925079.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/2946891.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/295046.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/295863.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3006203.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3009508.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3044167.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3050269.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3055850.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3061534.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3067354.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3074769.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3078639.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3085734.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3112621.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3117752.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3124550.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3136582.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3158779.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3158786.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3213763.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3276903.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3278527.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3297561.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3297567.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3311502.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/332407.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3340929.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/335538.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3358883.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3363499.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3368791.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3369406.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3391092.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3391167.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/343124.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3444445.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3452248.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3453153.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3455436.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3468496.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3477977.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3480784.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3482045.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/349456.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3496527.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3498449.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3517946.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3528628.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3556892.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/356890.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3570121.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3578527.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3584585.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3608369.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3628916.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3645013.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3655808.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3669911.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3680783.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3696940.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3697640.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/370124.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3734372.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3745075.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3753309.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3765756.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3768887.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3769622.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3780885.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3782828.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3785055.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3797211.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3801543.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3885250.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3889053.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/3893932.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/461467.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/473273.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/490206.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/50627.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/506922.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/521925.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/558342.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/563537.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/567973.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/613574.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/640052.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/6789.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/689207.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/694258.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/704086.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/721053.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/722179.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/72326.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/724383.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/734297.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/758596.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/763258.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/788.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/796010.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/800666.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/840044.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/862581.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/881362.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/890847.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/899196.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/910559.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/930650.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/940134.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/941312.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/942743.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/968365.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/971742.jpg',
+ b'/content/101_food_classes_10_percent/test/baklava/993668.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/100853.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1012548.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1044312.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1056550.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1073326.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1076104.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1139546.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1147514.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1165377.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/116895.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1169625.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1189532.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1193737.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1212091.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1215782.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1216433.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1219988.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1240408.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1243667.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1244594.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1254686.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/127274.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1281446.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1283655.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1305949.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1307126.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1309896.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/132214.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1327341.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1344628.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1350256.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1391584.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1410854.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1413739.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1422496.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1440469.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1449190.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/145114.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1487998.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1488494.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1490425.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/150760.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1525582.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/153517.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/158624.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1598003.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1621486.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1636003.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1645760.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1657743.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1661531.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1662207.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1666577.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1672341.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1698187.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1725022.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1726589.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1736023.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1736103.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1737830.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1742911.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1744294.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1744946.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1765131.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1782141.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1801501.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1834023.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1856680.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1859387.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1864287.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1887574.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1888322.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1894239.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1905801.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1906055.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1937269.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/195418.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1990775.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/1995804.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/199682.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2004560.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2036572.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2043824.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2047053.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/206130.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2072790.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2081072.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2082170.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2082670.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2093250.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2098481.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2107145.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2107422.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2111830.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2125731.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2145969.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2152088.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2155995.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/217698.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2202234.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2213150.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2224419.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2224490.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2227816.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/223404.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2250170.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2257269.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2269439.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2294985.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2298516.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2305461.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2352346.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2420375.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/245298.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2481212.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2501787.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2502843.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2518192.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2522462.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2527037.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2535555.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2547400.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2549446.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/257386.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2587814.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/259203.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2605475.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/262281.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/263713.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2649866.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2652547.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2660378.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2662677.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/266627.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2698359.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2704813.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2855684.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2855917.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/286992.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2874813.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2901949.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2954930.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2959284.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2960202.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/298930.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/2999990.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3009105.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3022415.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3026476.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3031137.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3034703.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3040322.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3047170.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3048461.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3048557.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3049045.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3057236.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3068895.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3110371.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3114203.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3136478.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3156761.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3173328.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3173456.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3177871.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3184691.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3186071.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3187459.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3213562.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3216827.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3233471.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3246745.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3251998.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3274204.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3275686.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3289048.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3293967.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3296135.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/331923.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3323312.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3324958.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3348946.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3351953.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3394024.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3397060.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3418483.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3453461.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3469865.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3473722.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3477399.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3501900.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3503609.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3526861.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3554546.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/356619.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3601506.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3669360.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3683582.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3691772.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3695049.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3698441.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3714848.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3715270.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/372148.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3763726.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3769247.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3806863.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3824578.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3851776.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3868777.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3889985.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3890359.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3896605.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3914142.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/3914776.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/393798.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/466766.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/469347.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/470891.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/484148.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/498896.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/499131.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/559236.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/625990.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/652322.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/71477.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/720185.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/724709.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/728710.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/731242.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/743316.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/754565.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/776057.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/78744.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/791096.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/792439.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/795452.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/797039.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/826914.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/838353.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/859482.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/878644.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/887024.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/898749.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/919508.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/921303.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/925163.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/945594.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/984068.jpg',
+ b'/content/101_food_classes_10_percent/test/beef_carpaccio/993482.jpg',
+ ...]
+[ ]
+#2. create a Dataframe of different parameters for each of our test images
+import pandas as pd
+pred_df=pd.DataFrame({"img_path": filepaths,
+                      "y_true": y_labels,
+                      "Y_pred": pred_classes,
+                      "pred_conf": preds_probs.max(axis=1), #get the maximum prediction probability
+                      "y_true_classes": [class_names[i] for i in y_labels],
+                      "y_pred_classname": [class_names[i] for i in pred_classes]}) 
+pred_df
+
+[ ]
+# 3. find out the dataframes which the prediction are wrong
+pred_df["pred_correct"] = pred_df["y_true"] == pred_df["Y_pred"]
+pred_df.head()
+
+[ ]
+# 4. sort our DataFrames to have most of wrong predictions at the top
+top_100_wrong=pred_df[pred_df["pred_correct"]==False].sort_values("pred_conf",ascending=False)[:100]
+top_100_wrong.head(20)
+
+[ ]
+#5. visualize the images with highest prediction probability but have the wrong prediction
+image_to_view= 9
+start_index=10
+from helper_functions import load_and_prep_image
+plt.figure(figsize=(15,10))
+for i,row in enumerate(top_100_wrong[start_index:start_index+image_to_view].itertuples()):
+  plt.subplot(3,3,i+1)
+  img= load_and_prep_image(row[1],scale=False)
+  _,_,_,_,pred_prob,y_true_classes,y_pred_classname,_ = row #only interested in a few parameters of each row
+  plt.imshow(img/255.)
+  plt.title(f"actual: {y_true_classes}, pred: {y_pred_classname},\n prob: {pred_prob}")
+  plt.axis(False)
+
+test out the big dog model on our custom images
+[ ]
+#custom image test
+!wget https://storage.googleapis.com/ztm_tf_course/food_vision/custom_food_images.zip
+
+unzip_data("custom_food_images.zip")
+--2023-01-08 15:38:42--  https://storage.googleapis.com/ztm_tf_course/food_vision/custom_food_images.zip
+Resolving storage.googleapis.com (storage.googleapis.com)... 173.194.212.128, 173.194.213.128, 173.194.214.128, ...
+Connecting to storage.googleapis.com (storage.googleapis.com)|173.194.212.128|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 13192985 (13M) [application/zip]
+Saving to: ‘custom_food_images.zip’
+
+custom_food_images. 100%[===================>]  12.58M  --.-KB/s    in 0.1s    
+
+2023-01-08 15:38:43 (114 MB/s) - ‘custom_food_images.zip’ saved [13192985/13192985]
+
+[ ]
+#let's get the custom food image file path 
+custom_food_images=["custom_food_images/" + img_path for img_path in os.listdir("custom_food_images")]
+custom_food_images
+['custom_food_images/steak.jpeg',
+ 'custom_food_images/pizza-dad.jpeg',
+ 'custom_food_images/ramen.jpeg',
+ 'custom_food_images/sushi.jpeg',
+ 'custom_food_images/hamburger.jpeg',
+ 'custom_food_images/chicken_wings.jpeg']
+[ ]
+import random
+class_names=test_data.class_names
+class_name=random.choice(class_names)
+class_name
+
+
+[ ]
+#make prediction on custom food images
+for img in custom_food_images:
+  img=load_and_prep_image(img,scale=False) #do not need to scale for our EffiecientNet model
+  pred_probs=model.predict(tf.expand_dims(img,axis=0)) #make prediction on image with shape [1,224,224,3]
+  pred_class= class_names[pred_probs.argmax()] #get the index with the highest prediction probability
+  #plot the appropriate information
+  plt.figure()
+  plt.imshow(img/255.)
+  plt.title(f"pred: {pred_class}, prob {pred_prob.max():.2f} ")
+  plt.axis(False)
+
+[ ]
+
+Colab paid products - Cancel contracts here
