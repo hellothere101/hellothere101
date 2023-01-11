@@ -1,0 +1,377 @@
+*{
+    padding: 0;
+    margin: 0;
+}
+/* start of the home section   */
+#home{
+    background: linear-gradient(rgba(0,0,0,0.5),#6dd5ed),url(banner.jpg) center center / cover;
+    height: 100vh;
+}
+/* #home .logo{
+    width: 25px;
+    height: 25px;
+} */
+#home .logo img{
+    position: absolute;
+    top: 8%;
+    left: 7%;
+}
+.home{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    height: 100%;
+}
+#home h1{
+    font-size: 6.5rem;
+    font-family: 'Pacifico', cursive;
+}
+#home p{
+    font-family: 'Caveat', cursive;
+    font-size: 2.2rem;
+}
+#home .box{
+    margin: 23px 13px;
+}
+#home .box a{
+    position: relative;
+    padding: 14px 17px;
+    margin:16px 10px ;
+    font-size: 1.8rem;
+    border: 2px solid white;
+    text-decoration: none;
+    color: white;
+    overflow: hidden;
+    transition: 0.5s;
+    z-index: 1;
+}
+#home .box a span{
+    position: absolute;
+    background-color:white;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    z-index: -1;
+    transition: 0.5s;
+}
+#home .box a:hover span{
+    width: 100%;
+    color: black;
+}
+#home .box a:hover{
+    color: black;
+}
+/* end of the home section  */
+
+/* start of the nav bar css  */
+#sidenav{
+    position: fixed;
+    top: 0;
+    right: -250px;
+    background-color: #6dd5ed;
+    height: 100vh;
+    width: 250px;
+    transition: 0.5s;
+    z-index: 2;
+}
+#sidenav ul{
+    list-style: none;
+    margin: 20px 30px;
+}
+#sidenav ul li{
+    padding: 23px 14px;
+}
+#sidenav ul li a{
+    color: white;
+    font-size: 1.2rem;
+    text-decoration: none;
+    font-family: 'Caveat', cursive;
+}
+#menubtn{
+    position: fixed;
+    top: 59px;
+    right: 10px;
+    width: 50px;
+    height: 50px;
+    background-color: #6dd5ed;
+    z-index: 3;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.5s;
+}
+#menubtn img{
+    width: 30px;
+    margin-top: 10px;
+    /* height: 20px; */
+}
+/* end of the css bar  */
+
+/* start of the features  */
+#features{
+    width: 100%;
+    padding: 70px 0;
+}
+ .text{
+    display: flex;
+    align-items: center;
+    width: 100%;
+    flex-direction: column;
+}
+ .text h1{
+    font-family: 'Pacifico', cursive;
+    font-size: 3.5rem;
+ }
+ .text p{
+    color: #6dd5ed;
+    font-size: 1.5rem;
+    position: relative;
+    font-weight: bold;
+    font-family: 'Caveat', cursive;
+    /* font-weight: 600; */
+}
+.text p::after{
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -20px;
+    background: linear-gradient(#6dd5ed,white);
+    width: 70%;
+    height: 100%;
+    transform: rotate(10deg);
+    border-top-left-radius:35px;
+    border-bottom-right-radius:35px ;
+    z-index: -1;
+}
+.feature-box{
+    width: 80%;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* flex-wrap: wrap; */
+}
+#features .feature{
+    flex-basis: 50%;
+    display: flex;
+    text-align: center;
+    flex-direction: column;
+}
+#features .feature-img{
+    flex-basis: 50%;
+    margin: auto;
+    margin-left: 12px;
+}
+#features .feature-img img{
+    width: 401px;
+    margin-top: 20px;
+    border-radius:20px ;
+}
+#features .feature p{
+    font-size: 2.2rem;
+    color: #6dd5ed;
+    font-family: 'Pacifico', cursive;
+    /* font-weight: bold; */
+}
+#features .feature .fa{
+    width: 30px;
+    height: 20px;
+    color: #6dd5ed;
+    border: 1px solid #6dd5ed;
+
+}
+/* end of the features  */
+
+/* start of the service section  */
+#service{
+    width: 100%;
+    padding: 70px 0px;
+}
+#service .service{
+    width: 80%;
+    display: flex;
+    justify-content: space-around;
+    /* align-items: center; */
+    flex-wrap: wrap;
+    margin: auto;
+}
+#service .single{
+    flex-basis: 48%;
+    text-align: center;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    position: relative;
+    /* margin: auto; */
+}
+#service .single img{
+    width: 100%;
+    border-radius: 8px;
+}
+.overlay{
+    position: absolute;
+    top: 0;
+    left: 0 ;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgb(0,0,0,0.5),#6dd5ed);
+    opacity: 0;
+    transition: 0.5s;
+}
+#service .single:hover .overlay{
+    opacity: 1;
+}
+#service .word{
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: 0.5s;
+}
+#service .single:hover .word{
+    bottom: 32px;
+    opacity: 1;
+}
+ #service .single hr{
+    color: black;
+}
+/* end of the srevice section  */
+
+/* start of the testimonial section  */
+#testimonial{
+    padding: 70px 0px;
+    width: 100%;
+}
+#testimonial .test-box{
+    width: 80%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    margin: auto;
+}
+#testimonial .test{
+    flex-basis: 20%;
+    padding: 11px 12px;
+    margin: 11px 10px;
+    border-radius: 22px;
+    box-shadow: 0px 2px 1px 3px #6dd5ed;
+    cursor: pointer;
+    transition: 0.5s;
+}
+#testimonial .test:hover{
+    transform: translateY(-7px);
+}
+.photo{
+    display: flex;
+    align-items: center;
+    margin: 0 20px;
+}
+.photo img{
+    width: 70px;
+}
+.info{
+    margin-left: 12px;
+}
+.info small{
+    color: #6dd5ed;
+    font-weight: bold;
+}
+/* end of the testimonial section   */
+
+/* start of the footer section  */
+#footer{
+    padding: 100px 0px 20px;
+    width: 100%;
+    background-color: rgb(160, 157, 157);
+    position: relative;
+}
+#footer .rows{
+    display: flex;
+    width: 80%;
+    flex-wrap: wrap;
+    margin:0 auto ;
+    justify-content: space-between;
+}
+#footer .left,.right{
+    flex-basis: 45%;
+    padding:10px ;
+    margin-bottom: 20px;
+    line-height: 30px;
+    font-family: 'Courier New', Courier, monospace ;
+}
+#footer .right{
+    text-align: right;
+}
+#footer img{
+    width: 300px;
+    opacity: 0.1;
+    position: absolute;
+    left: 35%;
+    bottom: 50%;
+    transform: translate(9%,43%);
+}
+/* end of the footer section  */
+
+/* the start of the media screen for the phone   */
+@media only screen and (max-width:770px){
+    /* home section  */
+    #home h1{
+            font-size: 4.5rem;
+    }
+    #home .box{
+        display: flex;
+        flex-direction: column;
+        margin-top: 12px;
+    }    
+    /* end of the home section  */
+    /* strat of the feature scetion  */
+    #features .feature-box{
+        flex-wrap: wrap;
+    }
+    #features .feature-img{
+        margin:auto ;
+        width: 100%;
+    }
+    #features .feature-img img{
+        width: 100%;
+    }
+    #features h1{
+        text-align: center;
+        
+    }
+    /* end of the feature section  */
+    /* start of the service section */
+    #service .single{
+        flex-basis: 100%;
+    }
+    #service h1{
+        text-align: center;
+    }
+    /* end of the service section  */
+    /* strat of the testimonial section  */
+    #testimonial .test{
+        flex-basis: 100%;
+    }
+    #testimonial h1{
+        text-align: center;
+    }
+    /* end of the testimonial section  */
+    /* start of the footer scetion  */
+    #footer .left,.right{
+        flex-basis: 100%;
+    }
+    #footer img{
+        left: 45%;
+        bottom: 70%;
+        width: 175px;
+    }
+    #footer .text{
+        font-size: 0.7rem;
+        text-align: center;
+    }
+    /* end of the footer scetion  */
+}
+/* end of media qyueries for the phone  */
